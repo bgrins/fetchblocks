@@ -34,6 +34,20 @@ const mod_js_1 = require("./mod.js");
 // npm --prefix npm test
 // Running:
 // deno run --allow-read --allow-net cmd.js
+// Importing:
+/*
+Deno:
+import { run } from "https://deno.land/x/fetchblocks/mod.js";
+
+Web:
+<script type="module">
+  import { run } from "https://esm.sh/@bgrins/fetchblocks/web/mod.js";
+</script>
+
+Node (TODO):
+cjs: require("@bgrins/fetchblocks")
+esm import { run } from "@bgrins/fetchblocks"
+*/
 dntShim.Deno.test("run", async () => {
     let resp = (0, mod_js_1.run)();
     (0, asserts_js_1.assertEquals)(resp, "<html><head></head><body></body></html>");

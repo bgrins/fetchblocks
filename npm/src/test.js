@@ -14,6 +14,20 @@ import { run, runWithEnv, fetchRemote } from "./mod.js";
 // Running:
 // deno run --allow-read --allow-net cmd.js
 
+// Importing:
+/*
+Deno:
+import { run } from "https://deno.land/x/fetchblocks/mod.js";
+
+Web:
+<script type="module">
+  import { run } from "https://esm.sh/@bgrins/fetchblocks/web/mod.js";
+</script>
+
+Node (TODO):
+cjs: require("@bgrins/fetchblocks")
+esm import { run } from "@bgrins/fetchblocks"
+*/
 
 dntShim.Deno.test("run", async () => {
   let resp = run();

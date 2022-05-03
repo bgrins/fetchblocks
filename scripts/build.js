@@ -49,3 +49,10 @@ Deno.copyFileSync("README.md", "npm/README.md");
 // The web/ folder has a separate set of deps to make a web-compatible ESM
 Deno.copyFileSync("mod.js", "web/mod.js");
 await copySync("./web", "npm/web")
+
+// ensure data is ignored in the `.npmignore` file so it doesn't get published 
+await Deno.writeTextFile(
+  "npm/.npmignore",
+  ".env",
+  { append: true },
+);
