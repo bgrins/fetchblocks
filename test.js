@@ -4,7 +4,9 @@ import { run, runWithEnv, fetchRemote } from "./mod.js";
 
 // Building for node and web:
 // deno run -A --unstable scripts/build.js 0.1.0
-// npm publish --dry-run npm/
+
+// Publishing:
+// deno run -A --unstable scripts/build.js 0.1.2 && git commit -am 'tag' && git tag 0.1.2 && && npm publish --access=public npm/ && git push && git push origin --tags
 
 // Testing:
 // deno test -A test.js 
