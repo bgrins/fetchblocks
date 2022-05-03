@@ -30,7 +30,7 @@ await build({
   },
   package: {
     // package.json properties
-    name: "fetchblocks",
+    name: "@bgrins/fetchblocks",
     version: Deno.args[0],
     description: "Experimental - library cross compiled to node/web/deno",
     license: "MIT",

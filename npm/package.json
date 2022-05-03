@@ -2,7 +2,7 @@
   "module": "./esm/mod.js",
   "main": "./script/mod.js",
   "types": "./types/mod.js",
-  "name": "fetchblocks",
+  "name": "@bgrins/fetchblocks",
   "version": "0.1.0",
   "description": "Experimental - library cross compiled to node/web/deno",
   "license": "MIT",
