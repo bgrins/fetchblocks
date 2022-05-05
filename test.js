@@ -352,3 +352,7 @@ Deno.test("fetchblocks custom script", async () => {
     ]
   );
 });
+
+Deno.test("ideas", async () => {
+  // Fetch data from https://github.com/public-apis/public-apis with CORS=yes and auth=no
+});
