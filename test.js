@@ -90,7 +90,11 @@ Deno.test("fetchblocks - builtins", async () => {
   );
 
   assertEquals(
-    jsEval("return builtins.json_to_csv(input, options)", [["foo", "bar", "baz"]], {}),
+    jsEval(
+      "return builtins.json_to_csv(input, options)",
+      [["foo", "bar", "baz"]],
+      {}
+    ),
     "foo,bar,baz"
   );
   // console.log(csv_to_json());
@@ -377,6 +381,61 @@ Deno.test("fetchblocks custom script", async () => {
         id: "4",
       },
     ]
+  );
+});
+
+Deno.test("md to csv", async () => {
+  let block = new fetchblock(
+    {
+      resource:
+        "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
+    },
+    { type: "md_to_json" },
+
+    // Grab the first N rows
+    { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" },
+
+    // Grab the relevant columns (name, stars, forks)
+    { type: "jmespath", value: "[][1:4].text" }
+  );
+
+  let ret = await block.run({
+    dataset: {
+      num_rows: 3,
+    },
+  });
+
+  assertEquals(ret, [
+    [
+      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp)",
+      "345335",
+      "28583",
+    ],
+    ["[996.ICU](https://github.com/996icu/996.ICU)", "262092", "21527"],
+    [
+      "[free-programming-books](https://github.com/EbookFoundation/free-programming-books)",
+      "232213",
+      "48692",
+    ],
+  ]);
+
+  ret = await fetchblocks.run(
+    [
+      { block },
+      { type: "json_to_csv" },
+      // { type: "slice"},
+    ],
+    {
+      verbose: true,
+
+      dataset: {
+        num_rows: 3,
+      },
+    }
+  );
+  assertEquals(
+    ret,
+    "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
   );
 });
 

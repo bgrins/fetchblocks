@@ -41,6 +41,9 @@ const builtins = {
   jmespath(data, transform) {
     return jsEval("return builtins.jmespath(input, options)", data, transform);
   },
+  md_to_json(data, transform) {
+    return jsEval("return builtins.md_to_json(input, options)", data, transform);
+  },
   csv_to_json(data, transform) {
     return jsEval("return builtins.csv_to_json(input, options)", data, transform);
   },
@@ -295,10 +298,10 @@ class fetchblock {
   async flatten() {
     let flattened = [];
     if (this.type == "block") {
-      // Or in HTML world go fetch and parse:
+      // Todo: we should probably expect to accept just steps here
+      // i.e. with actual cross link in declarative we need to fetch and parse anyway
       this.parent = this.request.block;
 
-      // Todo: Cycle check
       let parentFlattened = await this.parent.flatten();
 
       // Todo: Handle empty or other errors
@@ -344,6 +347,9 @@ class fetchblock {
       }
     }
 
+    if (options.verbose) {
+      console.log(plan);
+    }
     plan.currentStep = 0;
 
     let step = async () => {
@@ -364,10 +370,6 @@ class fetchblock {
         if (options.stubResponse) {
           stepValue = options.stubResponse;
         } else {
-          if (this.type !== "fetch") {
-            throw new Error("Unexpected top level request");
-          }
-
           stepValue = await this.fetchData(thisStep, options);
         }
       } else {
