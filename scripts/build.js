@@ -1,8 +1,10 @@
 // deno run -A scripts/build.js 0.1.0
-import { build, emptyDir } from "https://deno.land/x/dnt/mod.ts";import {
-  ensureDir,
-  copySync,
-} from "https://deno.land/std@0.78.0/fs/mod.ts";
+import { build, emptyDir } from "https://deno.land/x/dnt/mod.ts";
+import { ensureDir, copySync } from "https://deno.land/std@0.78.0/fs/mod.ts";
+
+import { bundleBuiltins, bundleWeb } from "./tasks.js";
+
+await bundleBuiltins();
 
 await emptyDir("./npm");
 await ensureDir("./npm/script"); // void
@@ -48,11 +50,9 @@ Deno.copyFileSync("README.md", "npm/README.md");
 
 // The web/ folder has a separate set of deps to make a web-compatible ESM
 Deno.copyFileSync("mod.js", "web/mod.js");
-await copySync("./web", "npm/web")
+await copySync("./web", "npm/web");
 
-// ensure data is ignored in the `.npmignore` file so it doesn't get published 
-await Deno.writeTextFile(
-  "npm/.npmignore",
-  ".env",
-  { append: true },
-);
+await bundleWeb();
+
+// ensure data is ignored in the `.npmignore` file so it doesn't get published
+await Deno.writeTextFile("npm/.npmignore", ".env", { append: true });

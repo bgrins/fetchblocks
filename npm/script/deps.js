@@ -26,13 +26,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.jmespath = exports.CONFIG = exports.DOMParser = exports.Liquid = void 0;
+exports.jmespath = exports.CONFIG = exports.DOMParser = exports.builtinsString = exports.Liquid = void 0;
 const mod_js_1 = require("./deps/deno.land/std@0.137.0/dotenv/mod.js");
 const dom = __importStar(require("jsdom"));
 var liquidjs_1 = require("liquidjs");
 Object.defineProperty(exports, "Liquid", { enumerable: true, get: function () { return liquidjs_1.Liquid; } });
 const jmespath_js_1 = __importDefault(require("./deps/esm.sh/jmespath.js"));
 exports.jmespath = jmespath_js_1.default;
+var builtins_bundle_string_js_1 = require("./builtins/builtins-bundle-string.js");
+Object.defineProperty(exports, "builtinsString", { enumerable: true, get: function () { return builtins_bundle_string_js_1.builtinsString; } });
 let DOMParser = dom.DOMParser;
 exports.DOMParser = DOMParser;
 let CONFIG = (0, mod_js_1.configSync)();

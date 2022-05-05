@@ -6,6 +6,5 @@ export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid
 const { DOMParser } = window;
 export { DOMParser };
 
-import jmespath from "https://esm.sh/jmespath";
+export { builtinsString } from "../builtins/builtins-bundle-string.js";
 
-export { jmespath };
