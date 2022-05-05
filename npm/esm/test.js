@@ -282,3 +282,6 @@ dntShim.Deno.test("fetchblocks custom script", async () => {
         },
     ]);
 });
+dntShim.Deno.test("ideas", async () => {
+    // Fetch data from https://github.com/public-apis/public-apis with CORS=yes and auth=no
+});

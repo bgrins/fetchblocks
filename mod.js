@@ -41,6 +41,12 @@ const builtins = {
   jmespath(data, transform) {
     return jsEval("return builtins.jmespath(input, options)", data, transform);
   },
+  csv_to_json(data, transform) {
+    return jsEval("return builtins.csv_to_json(input, options)", data, transform);
+  },
+  json_to_csv(data, transform) {
+    return jsEval("return builtins.json_to_csv(input, options)", data, transform);
+  },
   async script(data, transform) {
     // TODO: Use sandbox
     if (transform.value) {

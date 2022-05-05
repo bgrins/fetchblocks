@@ -70,13 +70,31 @@ Deno.test("fetchblocks - builtins", async () => {
     1
   );
 
+  assertEquals(jsEval("return builtins.noop(input, options)", { a: 1 }), {
+    a: 1,
+  });
+
   assertEquals(
-    jsEval(
-      "return builtins.noop(input, options)",
-      { a: 1 }
-    ),
-    { a: 1 }
+    jsEval("return builtins.csv_to_json(input, options)", "foo,bar,baz", {}),
+    {
+      data: [["foo", "bar", "baz"]],
+      errors: [],
+      meta: {
+        aborted: false,
+        cursor: 11,
+        delimiter: ",",
+        linebreak: "\n",
+        truncated: false,
+      },
+    }
   );
+
+  assertEquals(
+    jsEval("return builtins.json_to_csv(input, options)", [["foo", "bar", "baz"]], {}),
+    "foo,bar,baz"
+  );
+  // console.log(csv_to_json());
+  // console.log(json_to_csv([["foo", "bar", "baz"]]));
 
   // TODO: shouldn't this assertEquals? The assertion doesn't show a diff but still fails
   assertObjectMatch(
@@ -289,10 +307,19 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
   assertEquals(resp, "440 ASTON MARTIN");
 });
 Deno.test("fetchblocks custom script calling builtin", async () => {
-  assertEquals(await fetchblocks.run([
-    { resource: "http://example.com" },
-    { type: "script", value: "return builtins.jmespath(input, { value: 'a' })" },
-  ], { stubResponse: { a: 1}}), 1)
+  assertEquals(
+    await fetchblocks.run(
+      [
+        { resource: "http://example.com" },
+        {
+          type: "script",
+          value: "return builtins.jmespath(input, { value: 'a' })",
+        },
+      ],
+      { stubResponse: { a: 1 } }
+    ),
+    1
+  );
 });
 
 Deno.test("fetchblocks custom script", async () => {
