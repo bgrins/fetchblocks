@@ -1,7 +1,6 @@
 import * as dntShim from "./_dnt.test_shims.js";
 import { assertEquals, assertObjectMatch, assert, } from "./deps/deno.land/std@0.137.0/testing/asserts.js";
-import { run, runWithEnv, fetchRemote, jsEval } from "./mod.js";
-import { fetchblock, fetchblocks } from "./mod.js";
+import { fetchblock, fetchblocks, jsEval } from "./mod.js";
 // Building for node and web:
 // deno run -A --unstable scripts/build.js 0.1.0
 // Publishing:
@@ -25,18 +24,6 @@ Node (TODO):
 cjs: require("@bgrins/fetchblocks")
 esm import { run } from "@bgrins/fetchblocks"
 */
-dntShim.Deno.test("run", async () => {
-    let resp = run();
-    assertEquals(resp, "<html><head></head><body></body></html>");
-});
-dntShim.Deno.test("run with env", async () => {
-    let resp = runWithEnv();
-    assertEquals(resp, "HELLO WORLD");
-});
-dntShim.Deno.test("fetch in node", async () => {
-    let text = await fetchRemote("https://example.com");
-    assert(text, "Fetch worked");
-});
 // deno test --watch --allow-net --allow-read
 fetchblocks.env.set("NOTION_TOKEN", {
     value: fetchblocks.env.get("NOTION_TOKEN"),
@@ -46,7 +33,23 @@ dntShim.Deno.test("fetchblocks - builtins", async () => {
     // Directly test builtin functions. For now this is done by essentially eval'ing
     // but the intention here is that this will be wasmboxed
     assertEquals(jsEval("return builtins.jmespath(input, options)", { a: 1 }, { value: "a" }), 1);
-    assertEquals(jsEval("return builtins.noop(input, options)", { a: 1 }), { a: 1 });
+    assertEquals(jsEval("return builtins.noop(input, options)", { a: 1 }), {
+        a: 1,
+    });
+    assertEquals(jsEval("return builtins.csv_to_json(input, options)", "foo,bar,baz", {}), {
+        data: [["foo", "bar", "baz"]],
+        errors: [],
+        meta: {
+            aborted: false,
+            cursor: 11,
+            delimiter: ",",
+            linebreak: "\n",
+            truncated: false,
+        },
+    });
+    assertEquals(jsEval("return builtins.json_to_csv(input, options)", [["foo", "bar", "baz"]], {}), "foo,bar,baz");
+    // console.log(csv_to_json());
+    // console.log(json_to_csv([["foo", "bar", "baz"]]));
     // TODO: shouldn't this assertEquals? The assertion doesn't show a diff but still fails
     assertObjectMatch(jsEval("return builtins.md_to_json(input, options)", "# header"), [
         {
@@ -229,7 +232,10 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
 dntShim.Deno.test("fetchblocks custom script calling builtin", async () => {
     assertEquals(await fetchblocks.run([
         { resource: "http://example.com" },
-        { type: "script", value: "return builtins.jmespath(input, { value: 'a' })" },
+        {
+            type: "script",
+            value: "return builtins.jmespath(input, { value: 'a' })",
+        },
     ], { stubResponse: { a: 1 } }), 1);
 });
 dntShim.Deno.test("fetchblocks custom script", async () => {
@@ -281,6 +287,44 @@ dntShim.Deno.test("fetchblocks custom script", async () => {
             id: "4",
         },
     ]);
+});
+dntShim.Deno.test("md to csv", async () => {
+    let block = new fetchblock({
+        resource: "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
+    }, { type: "md_to_json" }, 
+    // Grab the first N rows
+    { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" }, 
+    // Grab the relevant columns (name, stars, forks)
+    { type: "jmespath", value: "[][1:4].text" });
+    let ret = await block.run({
+        dataset: {
+            num_rows: 3,
+        },
+    });
+    assertEquals(ret, [
+        [
+            "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp)",
+            "345335",
+            "28583",
+        ],
+        ["[996.ICU](https://github.com/996icu/996.ICU)", "262092", "21527"],
+        [
+            "[free-programming-books](https://github.com/EbookFoundation/free-programming-books)",
+            "232213",
+            "48692",
+        ],
+    ]);
+    ret = await fetchblocks.run([
+        { block },
+        { type: "json_to_csv" },
+        // { type: "slice"},
+    ], {
+        verbose: true,
+        dataset: {
+            num_rows: 3,
+        },
+    });
+    assertEquals(ret, "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692");
 });
 dntShim.Deno.test("ideas", async () => {
     // Fetch data from https://github.com/public-apis/public-apis with CORS=yes and auth=no

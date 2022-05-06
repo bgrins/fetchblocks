@@ -1,8 +1,5 @@
 export function jsEval(str: any, input: any, options: any): any;
-export function run(): any;
-export function runWithEnv(): string;
-export function fetchRemote(url: any): Promise<string>;
-export class fetchblock {
+export class fetchblock extends EventTarget {
     constructor(...args: any[]);
     request: any;
     transforms: any[];

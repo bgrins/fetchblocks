@@ -1,19 +1,15 @@
 import * as dntShim from "./_dnt.shims.js";
-import { CONFIG, Liquid, DOMParser, builtinsString, } from "./deps.js";
+import { CONFIG, Liquid, DOMParser, builtinsString } from "./deps.js";
 const LIQUID_ENGINE = new Liquid();
-function run() {
-    let doc = new DOMParser().parseFromString(`<html></html>`, "text/html");
-    return doc.documentElement.outerHTML;
+if (typeof CustomEvent == "undefined") {
+    // Node:
+    global.CustomEvent = class CustomEvent extends Event {
+        constructor(message, data) {
+            super(message, data);
+            this.detail = data.detail;
+        }
+    };
 }
-function runWithEnv() {
-    return `HELLO ${CONFIG["HELLO"]}`;
-}
-async function fetchRemote(url) {
-    let resp = await dntShim.fetch(url);
-    let text = await resp.text();
-    return text;
-}
-export { run, runWithEnv, fetchRemote };
 export function jsEval(str, input, options) {
     // The intent is for this to run in a sandbox, but for now eval it:
     let fn = new Function("input", "options", builtinsString + str);
@@ -25,6 +21,15 @@ const builtins = {
     },
     jmespath(data, transform) {
         return jsEval("return builtins.jmespath(input, options)", data, transform);
+    },
+    md_to_json(data, transform) {
+        return jsEval("return builtins.md_to_json(input, options)", data, transform);
+    },
+    csv_to_json(data, transform) {
+        return jsEval("return builtins.csv_to_json(input, options)", data, transform);
+    },
+    json_to_csv(data, transform) {
+        return jsEval("return builtins.json_to_csv(input, options)", data, transform);
     },
     async script(data, transform) {
         // TODO: Use sandbox
@@ -132,8 +137,9 @@ const fetchblocks = (() => {
         },
     };
 })();
-class fetchblock {
+class fetchblock extends EventTarget {
     constructor(...args) {
+        super();
         if (args.length === 0) {
             throw new Error("Must provide an initial `fetch` or `block` step as the first parameter");
         }
@@ -142,6 +148,22 @@ class fetchblock {
         if (!this.type) {
             throw new Error("The request must be either `fetch` or `block`");
         }
+        this.addEventListener("PlanReady", (e) => {
+            if (e.detail?.options?.verbose) {
+                console.log(`Plan is ready - ${e.detail.plan.length} steps:`);
+                console.table(e.detail.plan.map((step) => [step]));
+            }
+        });
+        this.addEventListener("StepComplete", (e) => {
+            if (e.detail?.options?.verbose) {
+                // console.log(e.detail);
+            }
+        });
+        this.addEventListener("StepStarting", (e) => {
+            if (e.detail?.options?.verbose) {
+                console.log("Step starting", e.detail);
+            }
+        });
     }
     get type() {
         if (this.request.resource) {
@@ -178,19 +200,20 @@ class fetchblock {
         });
         let type = resp.headers.get("Content-Type");
         if (options.verbose) {
-            console.log(` Content-Type ${type}`);
+            console.log("Response received - headers:");
+            console.table([...resp.headers]);
         }
         if (type.startsWith("text/")) {
             let text = await resp.text();
             if (options.verbose) {
-                console.log(` Response: ${text}`);
+                console.log(` Response - text.length: ${text.length}`);
             }
             return text;
         }
         let json = await resp.json();
-        if (options.verbose) {
-            console.log(" ", json);
-        }
+        // if (options.verbose) {
+        //   console.log(" ", json);
+        // }
         return json;
     }
     // Run the whole block from start to finish
@@ -204,7 +227,7 @@ class fetchblock {
             let stepValue = plan[plan.currentStep - 1].stepValue;
             if (options.verbose) {
                 console.log(` Step #${plan.currentStep} complete`);
-                console.log(` Value: ${JSON.stringify(stepValue)}`);
+                // console.log(` Value: ${JSON.stringify(stepValue)}`);
             }
         }
         return plan[plan.length - 1].stepValue;
@@ -229,9 +252,9 @@ class fetchblock {
     async flatten() {
         let flattened = [];
         if (this.type == "block") {
-            // Or in HTML world go fetch and parse:
+            // Todo: we should probably expect to accept just steps here
+            // i.e. with actual cross link in declarative we need to fetch and parse anyway
             this.parent = this.request.block;
-            // Todo: Cycle check
             let parentFlattened = await this.parent.flatten();
             // Todo: Handle empty or other errors
             flattened.push(...parentFlattened);
@@ -268,6 +291,7 @@ class fetchblock {
             }
         }
         plan.currentStep = 0;
+        this.dispatchEvent(new CustomEvent("PlanReady", { detail: { plan, options } }));
         let step = async () => {
             // TODO: Maintain state here and do the actual run through
             // such that `run` just needs to loop through until this returns null
@@ -275,21 +299,19 @@ class fetchblock {
             if (plan.currentStep >= plan.length) {
                 return;
             }
-            if (options.verbose) {
-                console.log(` Single step`, plan[plan.currentStep]);
-            }
             let stepValue;
             let thisStep = plan[plan.currentStep];
+            this.dispatchEvent(new CustomEvent("StepStarting", {
+                detail: { currentStep: plan.currentStep, step: thisStep, options },
+            }));
             if (plan.currentStep == 0) {
                 if (options.stubResponse) {
                     stepValue = options.stubResponse;
                 }
                 else {
-                    if (this.type !== "fetch") {
-                        throw new Error("Unexpected top level request");
-                    }
                     stepValue = await this.fetchData(thisStep, options);
                 }
+                thisStep.stepValue = stepValue;
             }
             else {
                 let lastStep = plan[plan.currentStep - 1];
@@ -299,8 +321,11 @@ class fetchblock {
                     throw new Error(`Unrecognized builtin: ${transform.type}`);
                 }
                 stepValue = await builtins[transform.type].call(null, incomingValue, transform);
+                thisStep.stepValue = stepValue;
             }
-            thisStep.stepValue = stepValue;
+            this.dispatchEvent(new CustomEvent("StepComplete", {
+                detail: { currentStep: plan.currentStep, step: thisStep, options },
+            }));
             plan.currentStep = plan.currentStep + 1;
         };
         return {

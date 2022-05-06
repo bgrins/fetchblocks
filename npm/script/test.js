@@ -26,7 +26,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const dntShim = __importStar(require("./_dnt.test_shims.js"));
 const asserts_js_1 = require("./deps/deno.land/std@0.137.0/testing/asserts.js");
 const mod_js_1 = require("./mod.js");
-const mod_js_2 = require("./mod.js");
 // Building for node and web:
 // deno run -A --unstable scripts/build.js 0.1.0
 // Publishing:
@@ -50,28 +49,32 @@ Node (TODO):
 cjs: require("@bgrins/fetchblocks")
 esm import { run } from "@bgrins/fetchblocks"
 */
-dntShim.Deno.test("run", async () => {
-    let resp = (0, mod_js_1.run)();
-    (0, asserts_js_1.assertEquals)(resp, "<html><head></head><body></body></html>");
-});
-dntShim.Deno.test("run with env", async () => {
-    let resp = (0, mod_js_1.runWithEnv)();
-    (0, asserts_js_1.assertEquals)(resp, "HELLO WORLD");
-});
-dntShim.Deno.test("fetch in node", async () => {
-    let text = await (0, mod_js_1.fetchRemote)("https://example.com");
-    (0, asserts_js_1.assert)(text, "Fetch worked");
-});
 // deno test --watch --allow-net --allow-read
-mod_js_2.fetchblocks.env.set("NOTION_TOKEN", {
-    value: mod_js_2.fetchblocks.env.get("NOTION_TOKEN"),
+mod_js_1.fetchblocks.env.set("NOTION_TOKEN", {
+    value: mod_js_1.fetchblocks.env.get("NOTION_TOKEN"),
     allowedOrigins: ["https://api.notion.com"],
 });
 dntShim.Deno.test("fetchblocks - builtins", async () => {
     // Directly test builtin functions. For now this is done by essentially eval'ing
     // but the intention here is that this will be wasmboxed
     (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.jmespath(input, options)", { a: 1 }, { value: "a" }), 1);
-    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.noop(input, options)", { a: 1 }), { a: 1 });
+    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.noop(input, options)", { a: 1 }), {
+        a: 1,
+    });
+    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.csv_to_json(input, options)", "foo,bar,baz", {}), {
+        data: [["foo", "bar", "baz"]],
+        errors: [],
+        meta: {
+            aborted: false,
+            cursor: 11,
+            delimiter: ",",
+            linebreak: "\n",
+            truncated: false,
+        },
+    });
+    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.json_to_csv(input, options)", [["foo", "bar", "baz"]], {}), "foo,bar,baz");
+    // console.log(csv_to_json());
+    // console.log(json_to_csv([["foo", "bar", "baz"]]));
     // TODO: shouldn't this assertEquals? The assertion doesn't show a diff but still fails
     (0, asserts_js_1.assertObjectMatch)((0, mod_js_1.jsEval)("return builtins.md_to_json(input, options)", "# header"), [
         {
@@ -91,7 +94,7 @@ dntShim.Deno.test("fetchblocks - builtins", async () => {
 });
 // TODO: replace this with something else
 dntShim.Deno.test("fetchblocks - jmespath", async () => {
-    (0, asserts_js_1.assertEquals)(await mod_js_2.fetchblocks.run([
+    (0, asserts_js_1.assertEquals)(await mod_js_1.fetchblocks.run([
         {
             resource: "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
         },
@@ -107,7 +110,7 @@ dntShim.Deno.test("fetchblocks - jmespath", async () => {
 dntShim.Deno.test("fetchblocks - notion", async () => {
     // This is the internal JSON representation which can be used directly,
     // or you can use the HTML Custom Element syntax
-    let block = new mod_js_2.fetchblock({
+    let block = new mod_js_1.fetchblock({
         resource: "https://api.notion.com/v1/databases/{{dataset.databaseid}}/query",
         method: "POST",
         headers: {
@@ -118,7 +121,7 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
         type: "jmespath",
         value: "{{dataset.jmespath}}",
     });
-    let childBlock = new mod_js_2.fetchblock(
+    let childBlock = new mod_js_1.fetchblock(
     // Todo: external reference?
     { block }, {
         type: "jmespath",
@@ -129,7 +132,7 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
     let ret = await block.run({
         dataset: {
             databaseid: "c8892e5095404ed89ce0a4807e050d0f",
-            bearer: mod_js_2.fetchblocks.env.get("NOTION_TOKEN"),
+            bearer: mod_js_1.fetchblocks.env.get("NOTION_TOKEN"),
             jmespath: 'results[*].{id: id, due: properties."Date Created".created_time, content: properties.Name.title[0].plain_text}',
         },
     });
@@ -150,7 +153,7 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
             id: "e925f5ab-dc32-48df-a63d-259aa359b0ad",
         },
     ]);
-    let graphQLBlock = new mod_js_2.fetchblock({
+    let graphQLBlock = new mod_js_1.fetchblock({
         resource: "https://api.github.com/graphql",
         method: "POST",
         headers: {
@@ -166,7 +169,7 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
       states:CLOSED) { edges { node { title url labels(first:5) { edges { node {
       name } } } } } } } }`,
             }),
-            bearer: mod_js_2.fetchblocks.env.get("GITHUB_TOKEN"),
+            bearer: mod_js_1.fetchblocks.env.get("GITHUB_TOKEN"),
         },
     });
     (0, asserts_js_1.assertEquals)(ret, {
@@ -190,15 +193,15 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
     });
 });
 dntShim.Deno.test("fetchblocks throws on disallowed origin", async () => {
-    mod_js_2.fetchblocks.env.set("DISALLOWED_USE", {
+    mod_js_1.fetchblocks.env.set("DISALLOWED_USE", {
         value: "test",
         // Throw an exception if this is attempted to be used on another domain
         allowedOrigins: ["https://example.com"],
     });
     try {
-        await mod_js_2.fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
+        await mod_js_1.fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
             dataset: {
-                token: mod_js_2.fetchblocks.env.get("DISALLOWED_USE"),
+                token: mod_js_1.fetchblocks.env.get("DISALLOWED_USE"),
             },
         });
         (0, asserts_js_1.assert)(false, "Should have thrown");
@@ -207,7 +210,7 @@ dntShim.Deno.test("fetchblocks throws on disallowed origin", async () => {
         (0, asserts_js_1.assert)(true, `Threw ${e}`);
     }
     try {
-        await mod_js_2.fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
+        await mod_js_1.fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
             dataset: {
                 token: {
                     value: "test",
@@ -223,19 +226,19 @@ dntShim.Deno.test("fetchblocks throws on disallowed origin", async () => {
     }
 });
 dntShim.Deno.test("fetchblocks loaders", async () => {
-    (0, asserts_js_1.assert)(mod_js_2.fetchblocks.loadFromText);
-    (0, asserts_js_1.assert)(mod_js_2.fetchblocks.load);
-    let block = await mod_js_2.fetchblocks.loadFromText('[{ "resource": "http://example.com" }, { "type": "noop" }]', "json");
+    (0, asserts_js_1.assert)(mod_js_1.fetchblocks.loadFromText);
+    (0, asserts_js_1.assert)(mod_js_1.fetchblocks.load);
+    let block = await mod_js_1.fetchblocks.loadFromText('[{ "resource": "http://example.com" }, { "type": "noop" }]', "json");
     let resp = await block.run({
         verbose: true,
     });
     (0, asserts_js_1.assert)(resp.indexOf("<html") != -1);
-    block = await mod_js_2.fetchblocks.loadFromText(`<fetch-block resource="http://example.com">`, "html");
+    block = await mod_js_1.fetchblocks.loadFromText(`<fetch-block resource="http://example.com">`, "html");
     resp = await block.run({
         verbose: true,
     });
     (0, asserts_js_1.assert)(resp.indexOf("<html") != -1);
-    block = await mod_js_2.fetchblocks.loadFromText(`
+    block = await mod_js_1.fetchblocks.loadFromText(`
 <fetch-block
 id="multistep"
 resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
@@ -252,13 +255,16 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
     (0, asserts_js_1.assertEquals)(resp, "440 ASTON MARTIN");
 });
 dntShim.Deno.test("fetchblocks custom script calling builtin", async () => {
-    (0, asserts_js_1.assertEquals)(await mod_js_2.fetchblocks.run([
+    (0, asserts_js_1.assertEquals)(await mod_js_1.fetchblocks.run([
         { resource: "http://example.com" },
-        { type: "script", value: "return builtins.jmespath(input, { value: 'a' })" },
+        {
+            type: "script",
+            value: "return builtins.jmespath(input, { value: 'a' })",
+        },
     ], { stubResponse: { a: 1 } }), 1);
 });
 dntShim.Deno.test("fetchblocks custom script", async () => {
-    (0, asserts_js_1.assertEquals)(await new mod_js_2.fetchblock({
+    (0, asserts_js_1.assertEquals)(await new mod_js_1.fetchblock({
         resource: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCOT-EoZK8XhAeGWaH4nCMsWPuPJNAW-7SeWfaeKxH1MSr6IRwYO3W5t69ZnisVHWcjuQ8xtnlWjPj/pub?gid=0&single=true&output=csv",
     }, {
         type: "script",
@@ -306,6 +312,44 @@ dntShim.Deno.test("fetchblocks custom script", async () => {
             id: "4",
         },
     ]);
+});
+dntShim.Deno.test("md to csv", async () => {
+    let block = new mod_js_1.fetchblock({
+        resource: "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
+    }, { type: "md_to_json" }, 
+    // Grab the first N rows
+    { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" }, 
+    // Grab the relevant columns (name, stars, forks)
+    { type: "jmespath", value: "[][1:4].text" });
+    let ret = await block.run({
+        dataset: {
+            num_rows: 3,
+        },
+    });
+    (0, asserts_js_1.assertEquals)(ret, [
+        [
+            "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp)",
+            "345335",
+            "28583",
+        ],
+        ["[996.ICU](https://github.com/996icu/996.ICU)", "262092", "21527"],
+        [
+            "[free-programming-books](https://github.com/EbookFoundation/free-programming-books)",
+            "232213",
+            "48692",
+        ],
+    ]);
+    ret = await mod_js_1.fetchblocks.run([
+        { block },
+        { type: "json_to_csv" },
+        // { type: "slice"},
+    ], {
+        verbose: true,
+        dataset: {
+            num_rows: 3,
+        },
+    });
+    (0, asserts_js_1.assertEquals)(ret, "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692");
 });
 dntShim.Deno.test("ideas", async () => {
     // Fetch data from https://github.com/public-apis/public-apis with CORS=yes and auth=no
