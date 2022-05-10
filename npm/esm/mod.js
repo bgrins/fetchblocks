@@ -2,7 +2,7 @@ import * as dntShim from "./_dnt.shims.js";
 import { CONFIG, Liquid, DOMParser, builtinsString } from "./deps.js";
 const LIQUID_ENGINE = new Liquid();
 if (typeof CustomEvent == "undefined") {
-    // Node:
+    // node:
     global.CustomEvent = class CustomEvent extends Event {
         constructor(message, data) {
             super(message, data);
@@ -14,6 +14,15 @@ export function jsEval(str, input, options) {
     // The intent is for this to run in a sandbox, but for now eval it:
     let fn = new Function("input", "options", builtinsString + str);
     return fn(input, options);
+}
+function textIsJSON(text) {
+    try {
+        JSON.parse(text);
+        return true;
+    }
+    catch (e) {
+    }
+    return false;
 }
 const builtins = {
     noop(data, transform) {
@@ -43,90 +52,171 @@ const builtins = {
         }
     },
 };
+const networkLoaders = new Map();
+// Todo: integrate with API?
+// networkLoaders.set("gist", {
+//   shouldHandle(uri) {
+//     return uri.host == "gist.github.com"; // && uri.pathname looks like a gist;
+//   },
+//   async getContent(uri) {
+//     let raw = new URL("https://gist.githubusercontent.com" + uri.pathname + "/tip/" + uri.hash.substr(1));
+//     console.log(raw);
+//     let resp = await fetch(raw);
+//     return resp;
+//   },
+// });
 // TODO: implement write-back to text from a block (i.e. to convert from html to json
 // or to get the flattened version)
-const loaders = new Map();
-loaders.set("js", async () => {
-    return;
-});
-loaders.set("html", async (input) => {
-    let dom = new DOMParser().parseFromString(input, "text/html");
-    // TODO: handle fragment ids
-    let htmlBlock = dom.querySelector("fetch-block");
-    if (!htmlBlock) {
-        throw new Error("Can't find a fetchblock");
-    }
-    function gatherAttributes(el) {
-        let ret = {};
-        // Deno dom parser seems to have a bug with NamedNodeMap (no length prop and diff return values
-        // when keying by string). So do something a little different
-        if (typeof el.attributes.length !== "number") {
-            for (let name of Object.keys(el.attributes)) {
-                ret[name] = el.getAttribute(name);
-            }
+const blockLoaders = new Map();
+blockLoaders.set("json", {
+    shouldHandle(content) {
+        try {
+            JSON.parse(content);
+            return true;
         }
-        else {
-            for (let i = 0; i < el.attributes.length; i++) {
-                var attrib = el.attributes.item(i);
-                ret[attrib.name] = attrib.value;
-            }
+        catch (e) {
+        }
+    },
+    async getBlock(content) {
+        let ret = JSON.parse(content);
+        if (!Array.isArray(ret)) {
+            throw new Error(`JSON must be an array for now: ${content}`);
         }
         return ret;
-    }
-    let initialBlock = gatherAttributes(htmlBlock);
-    // TODO: Examples that i.e. put headers in child elements
-    let blocks = [initialBlock];
-    for (let transform of htmlBlock.querySelectorAll("fetch-block-transform, script[type='text/fetch-block-transform']")) {
-        let transformBlock = Object.assign(gatherAttributes(transform));
-        // TODO: Handle remote scripts as well
-        if (transform.tagName == "SCRIPT") {
-            transformBlock.type = "script";
-            transformBlock.value = transform.textContent;
-        }
-        blocks.push(transformBlock);
-    }
-    return blocks;
-    // if url, do a fetch
-    // parse HTML. Copy stuff from import-components.js
+    },
 });
-loaders.set("json", async (input) => {
-    let ret = JSON.parse(input);
-    if (!Array.isArray(ret)) {
-        throw new Error(`JSON must be an array for now: ${input}`);
-    }
-    return ret;
+blockLoaders.set("js", {
+    shouldHandle(content) { },
+    async getBlock() {
+        // Todo: Should this be an ESM?
+        return;
+    },
+});
+blockLoaders.set("html", {
+    shouldHandle(content) {
+        return content.indexOf("<fetch-block") != -1;
+    },
+    async getBlock(content, options) {
+        let dom = new DOMParser().parseFromString(content, "text/html");
+        let base;
+        if (options?.base) {
+            base = new URL(options?.base);
+        }
+        let id = base && base.hash.substr(1);
+        console.log("Getting block", base, id);
+        let htmlBlock;
+        if (id) {
+            htmlBlock = dom.getElementById(id);
+        }
+        else {
+            htmlBlock = dom.querySelector("fetch-block");
+        }
+        if (!htmlBlock) {
+            throw new Error(`Can't find a fetchblock ${base?.toString()}`);
+        }
+        function gatherAttributes(el) {
+            let ret = {};
+            // Deno dom parser seems to have a bug with NamedNodeMap (no length prop and diff return values
+            // when keying by string). So do something a little different
+            if (typeof el.attributes.length !== "number") {
+                for (let name of Object.keys(el.attributes)) {
+                    ret[name] = el.getAttribute(name);
+                }
+            }
+            else {
+                for (let i = 0; i < el.attributes.length; i++) {
+                    var attrib = el.attributes.item(i);
+                    ret[attrib.name] = attrib.value;
+                }
+            }
+            return ret;
+        }
+        let initialBlock = gatherAttributes(htmlBlock);
+        console.log(initialBlock);
+        // TODO: if the initial block references a URL make sure we set the proper base
+        if (base) {
+            if (initialBlock.resource) {
+                initialBlock.resource = new URL(initialBlock.resource, base).toString();
+            }
+            if (initialBlock.block) {
+                // TODO: do some pre-flattening here once we figure out how to represent this in
+                // the native format (i.e. nested). This would be an optimization to avoid reloading
+                // the same html file again.
+                // Could also look into caching the source per-block.
+                initialBlock.block = new URL(initialBlock.block, base).toString();
+            }
+        }
+        // TODO: Examples that i.e. put headers in child elements
+        let blocks = [initialBlock];
+        for (let transform of htmlBlock.querySelectorAll("fetch-block-transform, script[type='text/fetch-block-transform']")) {
+            let transformBlock = Object.assign(gatherAttributes(transform));
+            // TODO: Handle remote scripts as well
+            if (transform.tagName == "SCRIPT") {
+                transformBlock.type = "script";
+                transformBlock.value = transform.textContent;
+            }
+            blocks.push(transformBlock);
+        }
+        return blocks;
+        // if url, do a fetch
+        // parse HTML. Copy stuff from import-components.js
+    },
 });
 const fetchblocks = (() => {
     return {
-        loaders,
+        blockLoaders,
         // By default this will read from dotenv. If you want more you can set:
         env: new Map(Object.entries(CONFIG)),
-        async loadFromText(text, loader) {
-            // TODO: detect
-            console.log(loader);
-            if (!loader || !loaders.has(loader)) {
+        // We'll attempt to detect the appropriate loader, else you can
+        // pass them in (default values "js", "html", "json" or you can
+        // make your own with `fetchblocks.loader.set("foo", async (input) => {}))`
+        async loadFromText(text, loader, options) {
+            if (!loader) {
+                for (let [key, value] of blockLoaders.entries()) {
+                    if (value.shouldHandle(text)) {
+                        loader = key;
+                        break;
+                    }
+                }
+            }
+            if (!blockLoaders.has(loader)) {
                 throw new Error(`Missing loader ${loader}`);
             }
-            console.log(text);
-            let l = loaders.get(loader);
-            let obj = await l.call(null, text);
+            let l = blockLoaders.get(loader);
+            let obj = await l.getBlock(text, options);
             try {
                 return new fetchblock(...obj);
             }
             catch (e) { }
             throw new Error(`Loader ${loader} returned an empty object`);
         },
-        // We'll attempt to detect the appropriate loader, else you can
-        // pass them in (default values "js", "html", "json" or you can
-        // make your own with `fetchblocks.loader.set("foo", async (input) => {}))`
-        load(uri, loader) {
-            if (!loader) {
-                let detectedLoader;
-                if (!detectedLoader) {
-                    throw new Error(`Could not detect loader for ${uri}. If this seems wrong then please pass one in.`);
-                }
-                loader = detectedLoader;
+        async loadFromURI(uri, loader) {
+            if (typeof uri == "string") {
+                uri = new URL(uri);
             }
+            if (!(uri instanceof URL)) {
+                throw new Error(`Invalid URI passed in to loadFromURI ${uri}`);
+            }
+            let response;
+            for (let [key, value] of networkLoaders.entries()) {
+                if (value.shouldHandle(uri)) {
+                    response = await value.getContent(uri);
+                    break;
+                }
+            }
+            if (!response) {
+                response = await dntShim.fetch(uri);
+            }
+            if (response.status !== 200) {
+                // Todo: tests. How do handle redirect?
+                throw new Error(`Fetchblock couldn't be loaded from ${uri.toString()} - status ${response.status}`);
+            }
+            let text = await response.text();
+            let block = await this.loadFromText(text, loader, {
+                base: uri,
+                response
+            });
+            return block;
         },
         run(steps, dataset, options = {}) {
             if (!Array.isArray(steps)) {
@@ -139,10 +229,13 @@ const fetchblocks = (() => {
 })();
 class fetchblock extends EventTarget {
     constructor(...args) {
+        // Todo: only accept an array
         super();
         if (args.length === 0) {
             throw new Error("Must provide an initial `fetch` or `block` step as the first parameter");
         }
+        // Make sure the blocks are sane (no local functions etc)
+        // args = structuredClone(args);
         this.request = args[0];
         this.transforms = args.slice(1);
         if (!this.type) {
@@ -154,19 +247,19 @@ class fetchblock extends EventTarget {
                 console.table(e.detail.plan.map((step) => [step]));
             }
         });
-        this.addEventListener("StepComplete", (e) => {
-            if (e.detail?.options?.verbose) {
-                // console.log(e.detail);
-            }
-        });
         this.addEventListener("StepStarting", (e) => {
             if (e.detail?.options?.verbose) {
-                console.log("Step starting", e.detail);
+                console.log(`Step #${e.detail.stepNum} starting`, e.detail.step);
+            }
+        });
+        this.addEventListener("StepComplete", (e) => {
+            if (e.detail?.options?.verbose) {
+                console.log(`Step #${e.detail.stepNum} complete`, e.detail.step);
             }
         });
     }
     get type() {
-        if (this.request.resource) {
+        if (this.request.resource || this.request.stubResponse) {
             return "fetch";
         }
         if (this.request.block) {
@@ -174,6 +267,9 @@ class fetchblock extends EventTarget {
         }
     }
     async fetchData(fetchOptions = {}, options = {}) {
+        if (fetchOptions.stubResponse) {
+            return fetchOptions.stubResponse;
+        }
         // To avoid too much nesting in JS/JSON we pass all the fetch options
         // flattened along with the uri instead of two params. So cherry pick
         // only the valid opts to pass into the second param
@@ -183,7 +279,7 @@ class fetchblock extends EventTarget {
             throw new Error("No URL passed in");
         }
         if (options.verbose) {
-            console.log(`Fetching ${resource}`);
+            console.log(`Fetching`, resource);
         }
         let resp = await dntShim.fetch(resource, {
             method,
@@ -198,23 +294,24 @@ class fetchblock extends EventTarget {
             keepalive,
             signal,
         });
-        let type = resp.headers.get("Content-Type");
+        let type = resp.headers.get("Content-Type") || "";
         if (options.verbose) {
             console.log("Response received - headers:");
             console.table([...resp.headers]);
         }
-        if (type.startsWith("text/")) {
-            let text = await resp.text();
-            if (options.verbose) {
-                console.log(` Response - text.length: ${text.length}`);
-            }
-            return text;
+        if (type.startsWith("application/json")) {
+            let json = await resp.json();
+            return json;
         }
-        let json = await resp.json();
-        // if (options.verbose) {
-        //   console.log(" ", json);
-        // }
-        return json;
+        // Todo: what to do with non text / non json data?
+        let text = await resp.text();
+        if (options.verbose) {
+            console.log(` Response - text.length: ${text.length}`);
+        }
+        if (textIsJSON(text)) {
+            return JSON.parse(text);
+        }
+        return text;
     }
     // Run the whole block from start to finish
     async run(options = {}) {
@@ -224,11 +321,6 @@ class fetchblock extends EventTarget {
         }
         while (plan.currentStep < plan.length) {
             await step();
-            let stepValue = plan[plan.currentStep - 1].stepValue;
-            if (options.verbose) {
-                console.log(` Step #${plan.currentStep} complete`);
-                // console.log(` Value: ${JSON.stringify(stepValue)}`);
-            }
         }
         return plan[plan.length - 1].stepValue;
     }
@@ -255,6 +347,9 @@ class fetchblock extends EventTarget {
             // Todo: we should probably expect to accept just steps here
             // i.e. with actual cross link in declarative we need to fetch and parse anyway
             this.parent = this.request.block;
+            if (typeof this.parent == "string" || this.parent instanceof URL) {
+                this.parent = await fetchblocks.loadFromURI(this.parent);
+            }
             let parentFlattened = await this.parent.flatten();
             // Todo: Handle empty or other errors
             flattened.push(...parentFlattened);
@@ -302,7 +397,7 @@ class fetchblock extends EventTarget {
             let stepValue;
             let thisStep = plan[plan.currentStep];
             this.dispatchEvent(new CustomEvent("StepStarting", {
-                detail: { currentStep: plan.currentStep, step: thisStep, options },
+                detail: { stepNum: plan.currentStep + 1, step: thisStep, options },
             }));
             if (plan.currentStep == 0) {
                 if (options.stubResponse) {
@@ -323,10 +418,10 @@ class fetchblock extends EventTarget {
                 stepValue = await builtins[transform.type].call(null, incomingValue, transform);
                 thisStep.stepValue = stepValue;
             }
-            this.dispatchEvent(new CustomEvent("StepComplete", {
-                detail: { currentStep: plan.currentStep, step: thisStep, options },
-            }));
             plan.currentStep = plan.currentStep + 1;
+            this.dispatchEvent(new CustomEvent("StepComplete", {
+                detail: { stepNum: plan.currentStep, step: thisStep, options },
+            }));
         };
         return {
             plan,

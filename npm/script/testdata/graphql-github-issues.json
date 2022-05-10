@@ -1,0 +1,25 @@
+{
+  "data": {
+    "repository": {
+      "issues": {
+        "edges": [
+          {
+            "node": {
+              "title": "test issue",
+              "url": "https://github.com/bgrins/devtools-demos/issues/15",
+              "labels": {
+                "edges": [
+                  {
+                    "node": {
+                      "name": "wontfix"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

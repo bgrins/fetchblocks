@@ -5420,17 +5420,13 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         DOMParser = window.DOMParser;
     }
     const LIQUID_ENGINE = new Liquid();
-    function run() {
-        let doc = new DOMParser().parseFromString(`<html></html>`, "text/html");
-        return doc.documentElement.outerHTML;
-    }
-    function runWithEnv() {
-        return `HELLO ${CONFIG["HELLO"]}`;
-    }
-    async function fetchRemote(url) {
-        let resp = await fetch(url);
-        let text = await resp.text();
-        return text;
+    if (typeof CustomEvent == "undefined") {
+        global.CustomEvent = class CustomEvent extends Event {
+            constructor(message, data){
+                super(message, data);
+                this.detail = data.detail;
+            }
+        };
     }
     function jsEval(str, input, options) {
         let fn = new Function("input", "options", builtinsString + str);
@@ -5540,8 +5536,9 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
             }
         };
     })();
-    class fetchblock {
+    class fetchblock extends EventTarget {
         constructor(...args){
+            super();
             if (args.length === 0) {
                 throw new Error("Must provide an initial `fetch` or `block` step as the first parameter");
             }
@@ -5550,6 +5547,23 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
             if (!this.type) {
                 throw new Error("The request must be either `fetch` or `block`");
             }
+            this.addEventListener("PlanReady", (e)=>{
+                if (e.detail?.options?.verbose) {
+                    console.log(`Plan is ready - ${e.detail.plan.length} steps:`);
+                    console.table(e.detail.plan.map((step)=>[
+                            step
+                        ]
+                    ));
+                }
+            });
+            this.addEventListener("StepComplete", (e)=>{
+                if (e.detail?.options?.verbose) {}
+            });
+            this.addEventListener("StepStarting", (e)=>{
+                if (e.detail?.options?.verbose) {
+                    console.log("Step starting", e.detail);
+                }
+            });
         }
         get type() {
             if (this.request.resource) {
@@ -5582,19 +5596,19 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
             });
             let type = resp.headers.get("Content-Type");
             if (options.verbose) {
-                console.log(` Content-Type ${type}`);
+                console.log("Response received - headers:");
+                console.table([
+                    ...resp.headers
+                ]);
             }
             if (type.startsWith("text/")) {
                 let text = await resp.text();
                 if (options.verbose) {
-                    console.log(` Response: ${text}`);
+                    console.log(` Response - text.length: ${text.length}`);
                 }
                 return text;
             }
             let json1 = await resp.json();
-            if (options.verbose) {
-                console.log(" ", json1);
-            }
             return json1;
         }
         async run(options = {}) {
@@ -5604,10 +5618,9 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
             }
             while(plan.currentStep < plan.length){
                 await step();
-                let stepValue = plan[plan.currentStep - 1].stepValue;
+                plan[plan.currentStep - 1].stepValue;
                 if (options.verbose) {
                     console.log(` Step #${plan.currentStep} complete`);
-                    console.log(` Value: ${JSON.stringify(stepValue)}`);
                 }
             }
             return plan[plan.length - 1].stepValue;
@@ -5657,25 +5670,33 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                     }
                 }
             }
-            if (options.verbose) {
-                console.log(plan);
-            }
             plan.currentStep = 0;
+            this.dispatchEvent(new CustomEvent("PlanReady", {
+                detail: {
+                    plan,
+                    options
+                }
+            }));
             let step = async ()=>{
                 if (plan.currentStep >= plan.length) {
                     return;
                 }
-                if (options.verbose) {
-                    console.log(` Single step`, plan[plan.currentStep]);
-                }
                 let stepValue;
                 let thisStep = plan[plan.currentStep];
+                this.dispatchEvent(new CustomEvent("StepStarting", {
+                    detail: {
+                        currentStep: plan.currentStep,
+                        step: thisStep,
+                        options
+                    }
+                }));
                 if (plan.currentStep == 0) {
                     if (options.stubResponse) {
                         stepValue = options.stubResponse;
                     } else {
                         stepValue = await this.fetchData(thisStep, options);
                     }
+                    thisStep.stepValue = stepValue;
                 } else {
                     let lastStep = plan[plan.currentStep - 1];
                     let incomingValue = lastStep.stepValue;
@@ -5684,8 +5705,15 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                         throw new Error(`Unrecognized builtin: ${transform.type}`);
                     }
                     stepValue = await builtins[transform.type].call(null, incomingValue, transform);
+                    thisStep.stepValue = stepValue;
                 }
-                thisStep.stepValue = stepValue;
+                this.dispatchEvent(new CustomEvent("StepComplete", {
+                    detail: {
+                        currentStep: plan.currentStep,
+                        step: thisStep,
+                        options
+                    }
+                }));
                 plan.currentStep = plan.currentStep + 1;
             };
             return {
@@ -5695,9 +5723,6 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         }
     }
     return {
-        run: run,
-        runWithEnv: runWithEnv,
-        fetchRemote: fetchRemote,
         fetchblock: fetchblock,
         fetchblocks: fetchblocks,
         jsEval: jsEval

@@ -19,6 +19,15 @@ export function jsEval(str, input, options) {
   return fn(input, options);
 }
 
+function textIsJSON(text) {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch (e) {
+  }
+  return false;
+}
+
 const builtins = {
   noop(data, transform) {
     return jsEval("return builtins.noop(input, options)", data, transform);
@@ -365,13 +374,15 @@ class fetchblock extends EventTarget {
       return json;
     }
     // Todo: what to do with non text / non json data?
-    // if (type.startsWith("text/")) {
     let text = await resp.text();
     if (options.verbose) {
       console.log(` Response - text.length: ${text.length}`);
     }
+    if (textIsJSON(text)) {
+      return JSON.parse(text);
+    }
+
     return text;
-    // }
   }
 
   // Run the whole block from start to finish

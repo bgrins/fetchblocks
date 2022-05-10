@@ -14,6 +14,9 @@ types/deps/deno.land/std@0.137.0/testing/_format.d.ts
 esm/deps/deno.land/std@0.137.0/testing/asserts.js
 script/deps/deno.land/std@0.137.0/testing/asserts.js
 types/deps/deno.land/std@0.137.0/testing/asserts.d.ts
+esm/deps/deno.land/x/which_runtime@0.2.0/mod.js
+script/deps/deno.land/x/which_runtime@0.2.0/mod.js
+types/deps/deno.land/x/which_runtime@0.2.0/mod.d.ts
 esm/_dnt.test_shims.js
 script/_dnt.test_shims.js
 types/_dnt.test_shims.d.ts

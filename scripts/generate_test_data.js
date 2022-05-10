@@ -35,3 +35,35 @@ Deno.writeTextFileSync(
   "./testdata/top10.csv",
   await fetchblocks.run([{ stubResponse: top100 }, { type: "json_to_csv" }])
 );
+
+let graphQLBlock = new fetchblock({
+  resource: "https://api.github.com/graphql",
+  method: "POST",
+  headers: {
+    Authorization: "Bearer {{dataset.bearer}}",
+  },
+  body: `{{dataset.graphql}}`,
+});
+
+Deno.writeTextFileSync(
+  "./testdata/graphql-github-issues.json",
+  JSON.stringify(
+    await graphQLBlock.run({
+      verbose: true,
+      dataset: {
+        graphql: JSON.stringify({
+          query: `
+    query { repository(owner:"bgrins", name:"devtools-demos") { issues(last:1,
+      states:CLOSED) { edges { node { title url labels(first:5) { edges { node {
+      name } } } } } } } }`,
+        }),
+        bearer: {
+          value: fetchblocks.env.get("GITHUB_TOKEN"),
+          allowedOrigins: ["https://api.github.com"],
+        },
+      },
+    }),
+    null,
+    2
+  )
+);

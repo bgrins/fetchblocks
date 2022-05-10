@@ -11,6 +11,9 @@ await ensureDir("./npm/script"); // void
 await ensureDir("./npm/esm"); // void
 await Deno.copyFile(".env", "npm/script/.env");
 await Deno.copyFile(".env", "npm/esm/.env");
+await Deno.copyFile(".env", "npm/script/.env");
+await copySync("testdata", "npm/src/testdata");
+await copySync("testdata", "npm/script/testdata");
 
 await build({
   entryPoints: ["./mod.js", "./cmd.js"],

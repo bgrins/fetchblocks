@@ -1,6 +1,4 @@
-import { run, fetchblocks, } from "../web/bundle-module.js";
-console.log(run());
-
+import { fetchblock, fetchblocks } from "../web/bundle-module.js";
 
 let blocks = [
   { resource: "https://x-colors.herokuapp.com/api/random/{{dataset.hue}}" },
