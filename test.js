@@ -129,7 +129,7 @@ Deno.test("fetchblocks - jmespath", async () => {
 Deno.test("fetchblocks - notion", async () => {
   // This is the internal JSON representation which can be used directly,
   // or you can use the HTML Custom Element syntax
-  let block = new fetchblock(
+  let block = new fetchblock([
     {
       resource:
         "https://api.notion.com/v1/databases/{{dataset.databaseid}}/query",
@@ -143,16 +143,16 @@ Deno.test("fetchblocks - notion", async () => {
       type: "jmespath",
       value: "{{dataset.jmespath}}",
     }
-  );
+  ]);
 
-  let childBlock = new fetchblock(
+  let childBlock = new fetchblock([
     // Todo: external reference?
     { block },
     {
       type: "jmespath",
       value: "*",
     }
-  );
+  ]);
 
   assertEquals((await block.plan()).plan.length, 2);
   assertEquals((await childBlock.plan()).plan.length, 3);
@@ -340,7 +340,7 @@ Deno.test("fetchblocks custom script calling builtin", async () => {
 
 Deno.test("fetchblocks custom script", async () => {
   assertEquals(
-    await new fetchblock(
+    await new fetchblock([
       {
         resource:
           "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCOT-EoZK8XhAeGWaH4nCMsWPuPJNAW-7SeWfaeKxH1MSr6IRwYO3W5t69ZnisVHWcjuQ8xtnlWjPj/pub?gid=0&single=true&output=csv",
@@ -361,7 +361,7 @@ Deno.test("fetchblocks custom script", async () => {
         return todos;
         `,
       }
-    ).run({
+    ]).run({
       // TODO: simplify this to take a single options thing with dataset as key
       verbose: true,
       dataset: {},
@@ -397,7 +397,7 @@ Deno.test("fetchblocks custom script", async () => {
 });
 
 Deno.test("md to csv", async () => {
-  let block = new fetchblock(
+  let block = new fetchblock([
     {
       resource:
         "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
@@ -409,7 +409,7 @@ Deno.test("md to csv", async () => {
 
     // Grab the relevant columns (name, stars, forks)
     { type: "jmespath", value: "[][1:4].text" }
-  );
+  ]);
 
   let ret = await block.run({
     dataset: {
@@ -462,7 +462,7 @@ Deno.test("graphql", async () => {
     import.meta.url
   ).toString();
   let ret = await fetchblocks.run([{ resource }]);
-  // let graphQLBlock = new fetchblock({
+  // let graphQLBlock = new fetchblock([{
   //   resource: "https://api.github.com/graphql",
   //   method: "POST",
   //   headers: {

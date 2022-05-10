@@ -221,7 +221,7 @@ const fetchblocks = (() => {
       let l = blockLoaders.get(loader);
       let obj = await l.getBlock(text, options);
       try {
-        return new fetchblock(...obj);
+        return new fetchblock(obj);
       } catch (e) {}
 
       throw new Error(`Loader ${loader} returned an empty object`);
@@ -268,7 +268,7 @@ const fetchblocks = (() => {
       if (!Array.isArray(steps)) {
         throw new Error("fetchblocks.run expects an array of steps");
       }
-      let fb = new fetchblock(...steps);
+      let fb = new fetchblock(steps);
 
       return fb.run(dataset, options);
     },
@@ -276,12 +276,12 @@ const fetchblocks = (() => {
 })();
 
 class fetchblock extends EventTarget {
-  constructor(...args) {
+  constructor(args) {
     // Todo: only accept an array
     super();
     if (args.length === 0) {
       throw new Error(
-        "Must provide an initial `fetch` or `block` step as the first parameter"
+        "Must provide an array with steps, including a `fetch` or `block` as the first parameter"
       );
     }
 

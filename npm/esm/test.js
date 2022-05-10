@@ -86,23 +86,28 @@ dntShim.Deno.test("fetchblocks - jmespath", async () => {
 dntShim.Deno.test("fetchblocks - notion", async () => {
     // This is the internal JSON representation which can be used directly,
     // or you can use the HTML Custom Element syntax
-    let block = new fetchblock({
-        resource: "https://api.notion.com/v1/databases/{{dataset.databaseid}}/query",
-        method: "POST",
-        headers: {
-            "Notion-Version": "2022-02-22",
-            Authorization: "Bearer {{dataset.bearer}}",
+    let block = new fetchblock([
+        {
+            resource: "https://api.notion.com/v1/databases/{{dataset.databaseid}}/query",
+            method: "POST",
+            headers: {
+                "Notion-Version": "2022-02-22",
+                Authorization: "Bearer {{dataset.bearer}}",
+            },
         },
-    }, {
-        type: "jmespath",
-        value: "{{dataset.jmespath}}",
-    });
-    let childBlock = new fetchblock(
-    // Todo: external reference?
-    { block }, {
-        type: "jmespath",
-        value: "*",
-    });
+        {
+            type: "jmespath",
+            value: "{{dataset.jmespath}}",
+        }
+    ]);
+    let childBlock = new fetchblock([
+        // Todo: external reference?
+        { block },
+        {
+            type: "jmespath",
+            value: "*",
+        }
+    ]);
     assertEquals((await block.plan()).plan.length, 2);
     assertEquals((await childBlock.plan()).plan.length, 3);
     let ret = await block.run({
@@ -247,11 +252,13 @@ dntShim.Deno.test("fetchblocks custom script calling builtin", async () => {
     ], { stubResponse: { a: 1 } }), 1);
 });
 dntShim.Deno.test("fetchblocks custom script", async () => {
-    assertEquals(await new fetchblock({
-        resource: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCOT-EoZK8XhAeGWaH4nCMsWPuPJNAW-7SeWfaeKxH1MSr6IRwYO3W5t69ZnisVHWcjuQ8xtnlWjPj/pub?gid=0&single=true&output=csv",
-    }, {
-        type: "script",
-        value: `
+    assertEquals(await new fetchblock([
+        {
+            resource: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCOT-EoZK8XhAeGWaH4nCMsWPuPJNAW-7SeWfaeKxH1MSr6IRwYO3W5t69ZnisVHWcjuQ8xtnlWjPj/pub?gid=0&single=true&output=csv",
+        },
+        {
+            type: "script",
+            value: `
         let todos = [];
         // Todo - share some proper csv utils
         for (let row of input.split("\\r\\n")) {
@@ -264,7 +271,8 @@ dntShim.Deno.test("fetchblocks custom script", async () => {
         }
         return todos;
         `,
-    }).run({
+        }
+    ]).run({
         // TODO: simplify this to take a single options thing with dataset as key
         verbose: true,
         dataset: {},
@@ -297,13 +305,16 @@ dntShim.Deno.test("fetchblocks custom script", async () => {
     ]);
 });
 dntShim.Deno.test("md to csv", async () => {
-    let block = new fetchblock({
-        resource: "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
-    }, { type: "md_to_json" }, 
-    // Grab the first N rows
-    { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" }, 
-    // Grab the relevant columns (name, stars, forks)
-    { type: "jmespath", value: "[][1:4].text" });
+    let block = new fetchblock([
+        {
+            resource: "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
+        },
+        { type: "md_to_json" },
+        // Grab the first N rows
+        { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" },
+        // Grab the relevant columns (name, stars, forks)
+        { type: "jmespath", value: "[][1:4].text" }
+    ]);
     let ret = await block.run({
         dataset: {
             num_rows: 3,
@@ -342,7 +353,7 @@ dntShim.Deno.test("graphql", async () => {
     }
     let resource = new URL("./testdata/graphql-github-issues.json", import.meta.url).toString();
     let ret = await fetchblocks.run([{ resource }]);
-    // let graphQLBlock = new fetchblock({
+    // let graphQLBlock = new fetchblock([{
     //   resource: "https://api.github.com/graphql",
     //   method: "POST",
     //   headers: {

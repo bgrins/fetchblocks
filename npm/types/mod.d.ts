@@ -1,8 +1,8 @@
 export function jsEval(str: any, input: any, options: any): any;
 export class fetchblock extends EventTarget {
-    constructor(...args: any[]);
+    constructor(args: any);
     request: any;
-    transforms: any[];
+    transforms: any;
     get type(): "fetch" | "block" | undefined;
     fetchData(fetchOptions?: {}, options?: {}): Promise<any>;
     run(options?: {}): Promise<any>;
