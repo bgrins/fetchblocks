@@ -34,7 +34,6 @@ cjs: require("@bgrins/fetchblocks")
 esm import { run } from "@bgrins/fetchblocks"
 */
 
-
 // deno test --watch --allow-net --allow-read
 
 fetchblocks.env.set("NOTION_TOKEN", {
@@ -182,45 +181,6 @@ Deno.test("fetchblocks - notion", async () => {
       id: "e925f5ab-dc32-48df-a63d-259aa359b0ad",
     },
   ]);
-
-  let graphQLBlock = new fetchblock({
-    resource: "https://api.github.com/graphql",
-    method: "POST",
-    headers: {
-      Authorization: "Bearer {{dataset.bearer}}",
-    },
-    body: `{{dataset.graphql}}`,
-  });
-  ret = await graphQLBlock.run({
-    dataset: {
-      graphql: JSON.stringify({
-        query: `
-    query { repository(owner:"octocat", name:"Hello-World") { issues(last:1,
-      states:CLOSED) { edges { node { title url labels(first:5) { edges { node {
-      name } } } } } } } }`,
-      }),
-      bearer: fetchblocks.env.get("GITHUB_TOKEN"),
-    },
-  });
-  assertEquals(ret, {
-    data: {
-      repository: {
-        issues: {
-          edges: [
-            {
-              node: {
-                labels: {
-                  edges: [],
-                },
-                title: "Hello world!",
-                url: "https://github.com/octocat/Hello-World/issues/2273",
-              },
-            },
-          ],
-        },
-      },
-    },
-  });
 });
 
 Deno.test("fetchblocks throws on disallowed origin", async () => {
@@ -256,7 +216,7 @@ Deno.test("fetchblocks throws on disallowed origin", async () => {
 });
 Deno.test("fetchblocks loaders", async () => {
   assert(fetchblocks.loadFromText);
-  assert(fetchblocks.load);
+  assert(fetchblocks.loadFromURI);
 
   let block = await fetchblocks.loadFromText(
     '[{ "resource": "http://example.com" }, { "type": "noop" }]',
@@ -294,6 +254,55 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
     verbose: true,
   });
   assertEquals(resp, "440 ASTON MARTIN");
+
+  block = await fetchblocks.loadFromURI(
+    new URL("./testdata/blocks/vehicles.html#multistep", import.meta.url),
+    "html"
+  );
+  resp = await block.run({
+    verbose: true,
+  });
+  assertEquals(resp, "440 ASTON MARTIN");
+
+  // block = await fetchblocks.loadFromURI(new URL("./testdata/blocks/vehicles.html#base", import.meta.url), "html");
+  // resp = await block.run({
+  //   verbose: true,
+  // });
+  // assertEquals(resp, "440 ASTON MARTIN");
+});
+Deno.test("remote html load", async () => {
+  let block = await fetchblocks.loadFromURI(
+    new URL("./testdata/blocks/vehicles.html#multistep", import.meta.url),
+    "html"
+  );
+  let resp = await block.run({
+    // verbose: true,
+  });
+  assertEquals(resp, "440 ASTON MARTIN");
+
+  // Todo: relative path test
+  block = await fetchblocks.loadFromURI(
+    new URL("./testdata/blocks/relativepath.html#base", import.meta.url),
+    "html"
+  );
+  resp = await block.run({
+    verbose: true,
+  });
+  assertEquals(
+    resp,
+    [
+      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583",
+      "[996.ICU](https://github.com/996icu/996.ICU),262092,21527",
+      "[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692",
+      "[coding-interview-university](https://github.com/jwasham/coding-interview-university),218997,59344",
+      "[awesome](https://github.com/sindresorhus/awesome),199687,23351",
+      "[vue](https://github.com/vuejs/vue),195472,32037",
+      "[developer-roadmap](https://github.com/kamranahmedse/developer-roadmap),193881,27921",
+      "[public-apis](https://github.com/public-apis/public-apis),191014,22043",
+      "[react](https://github.com/facebook/react),187420,38539",
+      "[system-design-primer](https://github.com/donnemartin/system-design-primer),178874,32626",
+    ].join("\r\n")
+  );
 });
 Deno.test("fetchblocks custom script calling builtin", async () => {
   assertEquals(
@@ -422,6 +431,102 @@ Deno.test("md to csv", async () => {
     ret,
     "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
   );
+});
+
+Deno.test("graphql", async () => {
+  let graphQLBlock = new fetchblock({
+    resource: "https://api.github.com/graphql",
+    method: "POST",
+    headers: {
+      Authorization: "Bearer {{dataset.bearer}}",
+    },
+    body: `{{dataset.graphql}}`,
+  });
+
+  let ret = await graphQLBlock.run({
+    verbose: true,
+    dataset: {
+      graphql: JSON.stringify({
+        query: `
+    query { repository(owner:"bgrins", name:"devtools-demos") { issues(last:1,
+      states:CLOSED) { edges { node { title url labels(first:5) { edges { node {
+      name } } } } } } } }`,
+      }),
+      bearer: {
+        value: fetchblocks.env.get("GITHUB_TOKEN"),
+        allowedOrigins: ["https://api.github.com"],
+      },
+    },
+  });
+  assertEquals(ret, {
+    data: {
+      repository: {
+        issues: {
+          edges: [
+            {
+              node: {
+                labels: {
+                  edges: [
+                    {
+                      node: {
+                        name: "wontfix",
+                      },
+                    },
+                  ],
+                },
+                title: "test issue",
+                url: "https://github.com/bgrins/devtools-demos/issues/15",
+              },
+            },
+          ],
+        },
+      },
+    },
+  });
+});
+Deno.test("gist", async () => {
+  let graphQLBlock = await fetchblocks.loadFromURI(
+    "https://gist.githubusercontent.com/bgrins/8e22f70708edf41cefd2b35479eaa82e/raw/graphql-block.json"
+  );
+  let ret = await graphQLBlock.run({
+    dataset: {
+      graphql: JSON.stringify({
+        query: `
+    query { repository(owner:"bgrins", name:"devtools-demos") { issues(last:1,
+      states:CLOSED) { edges { node { title url labels(first:5) { edges { node {
+      name } } } } } } } }`,
+      }),
+      bearer: {
+        value: fetchblocks.env.get("GITHUB_TOKEN"),
+        allowedOrigins: ["https://api.github.com"],
+      },
+    },
+  });
+  assertEquals(ret, {
+    data: {
+      repository: {
+        issues: {
+          edges: [
+            {
+              node: {
+                labels: {
+                  edges: [
+                    {
+                      node: {
+                        name: "wontfix",
+                      },
+                    },
+                  ],
+                },
+                title: "test issue",
+                url: "https://github.com/bgrins/devtools-demos/issues/15",
+              },
+            },
+          ],
+        },
+      },
+    },
+  });
 });
 
 Deno.test("ideas", async () => {
