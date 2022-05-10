@@ -1,4 +1,5 @@
-// deno run -A scripts/build.js 0.1.0
+// deno run --unstable -A scripts/build.js 0.1.3
+
 import { build, emptyDir } from "https://deno.land/x/dnt/mod.ts";
 import { ensureDir, copySync } from "https://deno.land/std@0.78.0/fs/mod.ts";
 
