@@ -23,16 +23,18 @@ import { isDeno, isNode } from "https://deno.land/x/which_runtime/mod.ts";
 // Importing:
 /*
 Deno:
-import { run } from "https://deno.land/x/fetchblocks/mod.js";
+import { fetchblocks } from "https://deno.land/x/fetchblocks/mod.js";
 
 Web:
 <script type="module">
-  import { run } from "https://esm.sh/@bgrins/fetchblocks/web/mod.js";
+  import { fetchblocks } from "https://esm.sh/@bgrins/fetchblocks/web/mod.js";
 </script>
 
 Node (TODO):
-cjs: require("@bgrins/fetchblocks")
-esm import { run } from "@bgrins/fetchblocks"
+cjs:
+require("@bgrins/fetchblocks")
+esm:
+import { fetchblocks } from "@bgrins/fetchblocks"
 */
 
 // deno test --watch --allow-net --allow-read
