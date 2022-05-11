@@ -285,7 +285,27 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
   // });
   // assertEquals(resp, "440 ASTON MARTIN");
 });
-Deno.test("remote html load", async () => {
+Deno.test("dependency graphs", async () => {
+  if (isNode) {
+    // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+    // and loadfromtext instead.
+    return;
+  }
+
+  let resp;
+  try {
+    let block = await fetchblocks.loadFromURI(
+      new URL("./testdata/blocks/external3.html#cycle", import.meta.url),
+      "html"
+    );
+    resp = await block.run();
+    assert(false, "Cyclic dependency should throw")
+  } catch(e) {
+    assert(true, "Threw exception: " + e)
+  }
+
+});
+  Deno.test("remote html load", async () => {
   if (isNode) {
     // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
     // and loadfromtext instead.

@@ -5496,7 +5496,6 @@ blockLoaders.set("html", {
             base = new URL(options?.base);
         }
         let id = base && base.hash.substr(1);
-        console.log("Getting block", base, id);
         let htmlBlock;
         if (id) {
             htmlBlock = dom.getElementById(id);
@@ -5521,7 +5520,6 @@ blockLoaders.set("html", {
             return ret;
         }
         let initialBlock = gatherAttributes(htmlBlock);
-        console.log(initialBlock);
         if (base) {
             if (initialBlock.resource) {
                 initialBlock.resource = new URL(initialBlock.resource, base).toString();
@@ -5609,6 +5607,7 @@ class fetchblock extends EventTarget {
         if (args.length === 0) {
             throw new Error("Must provide an array with steps, including a `fetch` or `block` as the first parameter");
         }
+        this.remoteBlocks = new Set();
         this.request = args[0];
         this.transforms = args.slice(1);
         if (!this.type) {
@@ -5715,7 +5714,13 @@ class fetchblock extends EventTarget {
         if (this.type == "block") {
             this.parent = this.request.block;
             if (typeof this.parent == "string" || this.parent instanceof URL) {
+                let key = this.parent.toString().toLowerCase();
+                if (this.remoteBlocks.has(key)) {
+                    throw new Error(`Duplicate block detected: ${key}`);
+                }
+                this.remoteBlocks.add(key);
                 this.parent = await fetchblocks.loadFromURI(this.parent);
+                this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
             }
             let parentFlattened = await this.parent.flatten();
             flattened.push(...parentFlattened);

@@ -20,8 +20,7 @@ function textIsJSON(text) {
         JSON.parse(text);
         return true;
     }
-    catch (e) {
-    }
+    catch (e) { }
     return false;
 }
 const builtins = {
@@ -74,8 +73,7 @@ blockLoaders.set("json", {
             JSON.parse(content);
             return true;
         }
-        catch (e) {
-        }
+        catch (e) { }
     },
     async getBlock(content) {
         let ret = JSON.parse(content);
@@ -103,7 +101,6 @@ blockLoaders.set("html", {
             base = new URL(options?.base);
         }
         let id = base && base.hash.substr(1);
-        console.log("Getting block", base, id);
         let htmlBlock;
         if (id) {
             htmlBlock = dom.getElementById(id);
@@ -132,7 +129,6 @@ blockLoaders.set("html", {
             return ret;
         }
         let initialBlock = gatherAttributes(htmlBlock);
-        console.log(initialBlock);
         // TODO: if the initial block references a URL make sure we set the proper base
         if (base) {
             if (initialBlock.resource) {
@@ -214,7 +210,7 @@ const fetchblocks = (() => {
             let text = await response.text();
             let block = await this.loadFromText(text, loader, {
                 base: uri,
-                response
+                response,
             });
             return block;
         },
@@ -236,6 +232,8 @@ class fetchblock extends EventTarget {
         }
         // Make sure the blocks are sane (no local functions etc)
         // args = structuredClone(args);
+        // TODO: use this for preventing cyclic imports
+        this.remoteBlocks = new Set();
         this.request = args[0];
         this.transforms = args.slice(1);
         if (!this.type) {
@@ -348,7 +346,13 @@ class fetchblock extends EventTarget {
             // i.e. with actual cross link in declarative we need to fetch and parse anyway
             this.parent = this.request.block;
             if (typeof this.parent == "string" || this.parent instanceof URL) {
+                let key = this.parent.toString().toLowerCase();
+                if (this.remoteBlocks.has(key)) {
+                    throw new Error(`Duplicate block detected: ${key}`);
+                }
+                this.remoteBlocks.add(key);
                 this.parent = await fetchblocks.loadFromURI(this.parent);
+                this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
             }
             let parentFlattened = await this.parent.flatten();
             // Todo: Handle empty or other errors

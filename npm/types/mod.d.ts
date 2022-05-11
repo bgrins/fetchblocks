@@ -1,6 +1,7 @@
 export function jsEval(str: any, input: any, options: any): any;
 export class fetchblock extends EventTarget {
     constructor(args: any);
+    remoteBlocks: Set<any>;
     request: any;
     transforms: any;
     get type(): "fetch" | "block" | undefined;

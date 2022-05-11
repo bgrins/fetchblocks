@@ -14,16 +14,18 @@ import { isNode } from "./deps/deno.land/x/which_runtime@0.2.0/mod.js";
 // Importing:
 /*
 Deno:
-import { run } from "https://deno.land/x/fetchblocks/mod.js";
+import { fetchblocks } from "https://deno.land/x/fetchblocks/mod.js";
 
 Web:
 <script type="module">
-  import { run } from "https://esm.sh/@bgrins/fetchblocks/web/mod.js";
+  import { fetchblocks } from "https://esm.sh/@bgrins/fetchblocks/web/mod.js";
 </script>
 
 Node (TODO):
-cjs: require("@bgrins/fetchblocks")
-esm import { run } from "@bgrins/fetchblocks"
+cjs:
+require("@bgrins/fetchblocks")
+esm:
+import { fetchblocks } from "@bgrins/fetchblocks"
 */
 // deno test --watch --allow-net --allow-read
 fetchblocks.env.set("NOTION_TOKEN", {
@@ -212,6 +214,22 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
     //   verbose: true,
     // });
     // assertEquals(resp, "440 ASTON MARTIN");
+});
+dntShim.Deno.test("dependency graphs", async () => {
+    if (isNode) {
+        // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+        // and loadfromtext instead.
+        return;
+    }
+    let resp;
+    try {
+        let block = await fetchblocks.loadFromURI(new URL("./testdata/blocks/external3.html#cycle", import.meta.url), "html");
+        resp = await block.run();
+        assert(false, "Cyclic dependency should throw");
+    }
+    catch (e) {
+        assert(true, "Threw exception: " + e);
+    }
 });
 dntShim.Deno.test("remote html load", async () => {
     if (isNode) {
