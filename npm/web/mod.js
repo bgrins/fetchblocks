@@ -1,4 +1,4 @@
-import { CONFIG, Liquid, DOMParser, builtinsString } from "./deps.js";
+import { CONFIG, Liquid, DOMParser, builtinsString, nanoid } from "./deps.js";
 
 const LIQUID_ENGINE = new Liquid();
 
@@ -102,6 +102,9 @@ blockLoaders.set("json", {
     }
     return ret;
   },
+  blockToString(block) {
+    return JSON.stringify(block);
+  },
 });
 blockLoaders.set("js", {
   shouldHandle(content) {},
@@ -152,7 +155,6 @@ blockLoaders.set("html", {
     }
 
     let initialBlock = gatherAttributes(htmlBlock);
-    // TODO: if the initial block references a URL make sure we set the proper base
     if (base) {
       if (initialBlock.resource) {
         initialBlock.resource = new URL(initialBlock.resource, base).toString();
@@ -167,7 +169,6 @@ blockLoaders.set("html", {
     }
 
     // TODO: Examples that i.e. put headers in child elements
-
     let blocks = [initialBlock];
 
     for (let transform of htmlBlock.querySelectorAll(
@@ -176,7 +177,6 @@ blockLoaders.set("html", {
       let transformBlock = Object.assign(gatherAttributes(transform));
 
       // TODO: Handle remote scripts as well
-
       if (transform.tagName == "SCRIPT") {
         transformBlock.type = "script";
         transformBlock.value = transform.textContent;
@@ -214,8 +214,8 @@ const fetchblocks = (() => {
         throw new Error(`Missing loader ${loader}`);
       }
 
-      let l = blockLoaders.get(loader);
-      let obj = await l.getBlock(text, options);
+      let blockLoader = blockLoaders.get(loader);
+      let obj = await blockLoader.getBlock(text, options);
       try {
         return new fetchblock(obj);
       } catch (e) {}
@@ -275,20 +275,21 @@ class fetchblock extends EventTarget {
   constructor(args) {
     // Todo: only accept an array
     super();
+    this.id = nanoid();
     if (args.length === 0) {
       throw new Error(
         "Must provide an array with steps, including a `fetch` or `block` as the first parameter"
       );
     }
 
-    // Make sure the blocks are sane (no local functions etc)
-    // args = structuredClone(args);
+    // If we wanted to make sure the blocks are sane (no local functions etc)
+    // if (args[0].block instanceof fetchblock) {
+    //   args[0] = { block: args[0].block.steps };
+    // }
+    // args = JSON.parse(JSON.stringify(args));
 
-    // TODO: use this for preventing cyclic imports
     this.remoteBlocks = new Set();
-
-    this.request = args[0];
-    this.transforms = args.slice(1);
+    this.steps = args;
 
     if (!this.type) {
       throw new Error("The request must be either `fetch` or `block`");
@@ -310,6 +311,18 @@ class fetchblock extends EventTarget {
         console.log(`Step #${e.detail.stepNum} complete`, e.detail.step);
       }
     });
+    this.addEventListener("RunComplete", (e) => {
+      if (e.detail?.options?.verbose) {
+        console.log(`Run complete`, e.detail.value);
+      }
+    });
+  }
+
+  get request() {
+    return this.steps[0];
+  }
+  get transforms() {
+    return this.steps.slice(1);
   }
 
   get type() {
@@ -320,6 +333,8 @@ class fetchblock extends EventTarget {
       return "block";
     }
   }
+
+  stringify(type) {}
 
   async fetchData(fetchOptions = {}, options = {}) {
     if (fetchOptions.stubResponse) {
@@ -363,6 +378,7 @@ class fetchblock extends EventTarget {
       keepalive,
       signal,
     });
+
     let type = resp.headers.get("Content-Type") || "";
     if (options.verbose) {
       console.log("Response received - headers:");
@@ -387,14 +403,18 @@ class fetchblock extends EventTarget {
   // Run the whole block from start to finish
   async run(options = {}) {
     let { plan, step } = await this.plan(options);
-
-    if (options.verbose) {
-      console.log(`Starting run (${plan.length} steps)`);
-    }
     while (plan.currentStep < plan.length) {
       await step();
     }
-    return plan[plan.length - 1].stepValue;
+
+    let value = plan[plan.length - 1].stepValue;
+    // TODO: is this useful?
+    // this.dispatchEvent(
+    //   new CustomEvent("RunComplete", {
+    //     detail: { fbid: this.id, value, plan, options },
+    //   })
+    // );
+    return value;
   }
 
   // Apply liquid templates to finalize plan with actual values
@@ -424,6 +444,7 @@ class fetchblock extends EventTarget {
       if (typeof this.parent == "string" || this.parent instanceof URL) {
         let key = this.parent.toString().toLowerCase();
 
+        // Prevent cycles
         if (this.remoteBlocks.has(key)) {
           throw new Error(`Duplicate block detected: ${key}`);
         }
@@ -455,8 +476,7 @@ class fetchblock extends EventTarget {
       ([k, v]) => typeof v == "object" && v.hasOwnProperty("value")
     );
     // We have to first liquify to get the accurate URL.
-    // Then check to see if a secret was used inappropriately.
-    // If so, then remove the secret and re-liquify
+    // Then check to see if a secret was used inappropriately and throw.
     for (let [k, v] of secrets) {
       dataset[k] = v.value;
     }
@@ -480,7 +500,7 @@ class fetchblock extends EventTarget {
 
     plan.currentStep = 0;
     this.dispatchEvent(
-      new CustomEvent("PlanReady", { detail: { plan, options } })
+      new CustomEvent("PlanReady", { detail: { fbid: this.id, plan, options } })
     );
 
     let step = async () => {
@@ -496,7 +516,13 @@ class fetchblock extends EventTarget {
       let thisStep = plan[plan.currentStep];
       this.dispatchEvent(
         new CustomEvent("StepStarting", {
-          detail: { stepNum: plan.currentStep + 1, step: thisStep, options },
+          detail: {
+            fbid: this.id,
+            stepNum: plan.currentStep + 1,
+            step: thisStep,
+            plan,
+            options,
+          },
         })
       );
       if (plan.currentStep == 0) {
@@ -523,7 +549,13 @@ class fetchblock extends EventTarget {
       plan.currentStep = plan.currentStep + 1;
       this.dispatchEvent(
         new CustomEvent("StepComplete", {
-          detail: { stepNum: plan.currentStep, step: thisStep, options },
+          detail: {
+            fbid: this.id,
+            stepNum: plan.currentStep,
+            step: thisStep,
+            plan,
+            options,
+          },
         })
       );
     };

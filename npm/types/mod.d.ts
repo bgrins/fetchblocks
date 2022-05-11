@@ -1,10 +1,13 @@
 export function jsEval(str: any, input: any, options: any): any;
 export class fetchblock extends EventTarget {
     constructor(args: any);
+    id: string;
     remoteBlocks: Set<any>;
-    request: any;
-    transforms: any;
+    steps: any;
+    get request(): any;
+    get transforms(): any;
     get type(): "fetch" | "block" | undefined;
+    stringify(type: any): void;
     fetchData(fetchOptions?: {}, options?: {}): Promise<any>;
     run(options?: {}): Promise<any>;
     liquify(plan: any, dataset: any): any;

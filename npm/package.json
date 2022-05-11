@@ -30,6 +30,7 @@
     "jsdom": "^19.0.0",
     "liquidjs": "^9.37.0",
     "@deno/shim-deno": "~0.5.0",
+    "@deno/shim-crypto": "~0.2.0",
     "undici": "^4.12.1"
   },
   "devDependencies": {

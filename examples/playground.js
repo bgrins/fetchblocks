@@ -2,7 +2,7 @@ import { fetchblock, fetchblocks } from "../web/bundle-module.js";
 
 let blocks = [
   { resource: "https://x-colors.herokuapp.com/api/random/{{dataset.hue}}" },
-  { type: "jmespath", value: 'hex' }
+  { type: "jmespath", value: "hex" },
 ];
 let f = fetchblocks.run(blocks, {
   dataset: {
@@ -10,12 +10,11 @@ let f = fetchblocks.run(blocks, {
     mysecret: {
       value: "secret",
       allowedOrigins: ["https://x-colors.herokuapp.com"],
-    }
-  }    
-})
+    },
+  },
+});
 
-
-f.then(r=>console.log(r))
+f.then((r) => console.log(r));
 
 // let resolvedScript = new URL("../web/bundle-classic.js", document.location)
 //   .href;
@@ -28,6 +27,33 @@ f.then(r=>console.log(r))
 //   { type: "text/javascript" }
 // );
 
+let blockhistory = {};
+
+function runBlock(blocks, options) {
+  var worker = new Worker("./playground-worker.js");
+  worker.onmessage = function (e) {
+    console.log(e);
+    if (e.data.type == "PlanReady") {
+      blockhistory[e.data.detail.fbid] = e.data.detail.plan;
+    }
+    if (e.data.type == "StepComplete") {
+      blockhistory[e.data.detail.fbid] = e.data.detail.plan;
+    }
+    console.log(blockhistory);
+  };
+
+  worker.postMessage({
+    type: "fetchblocks.run",
+    blocks,
+    options,
+  });
+}
+
+runBlock([
+  { resource: "https://x-colors.herokuapp.com/api/random" },
+  { type: "jmespath", value: "hex" },
+]);
+
 function evalInWorker(script) {
   var worker = new Worker("./playground-worker.js");
 
@@ -37,11 +63,6 @@ function evalInWorker(script) {
   // worker.postMessage({
   //   type: "jsEval",
   //   message: "return 1+1",
-  // });
-  // worker.postMessage({
-  //   type: "fetchblocks.run",
-  //   blocks: [{ resource: "https://x-colors.herokuapp.com/api/random" }],
-  //   options: {},
   // });
   worker.postMessage({
     type: "parentEval",

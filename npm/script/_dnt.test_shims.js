@@ -1,9 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dntGlobalThis = exports.Response = exports.Request = exports.Headers = exports.FormData = exports.File = exports.fetch = exports.Deno = void 0;
+exports.dntGlobalThis = exports.Response = exports.Request = exports.Headers = exports.FormData = exports.File = exports.fetch = exports.crypto = exports.Deno = void 0;
 const shim_deno_1 = require("@deno/shim-deno");
 var shim_deno_2 = require("@deno/shim-deno");
 Object.defineProperty(exports, "Deno", { enumerable: true, get: function () { return shim_deno_2.Deno; } });
+const shim_crypto_1 = require("@deno/shim-crypto");
+var shim_crypto_2 = require("@deno/shim-crypto");
+Object.defineProperty(exports, "crypto", { enumerable: true, get: function () { return shim_crypto_2.crypto; } });
 const undici_1 = require("undici");
 var undici_2 = require("undici");
 Object.defineProperty(exports, "fetch", { enumerable: true, get: function () { return undici_2.fetch; } });
@@ -14,6 +17,7 @@ Object.defineProperty(exports, "Request", { enumerable: true, get: function () {
 Object.defineProperty(exports, "Response", { enumerable: true, get: function () { return undici_2.Response; } });
 const dntGlobals = {
     Deno: shim_deno_1.Deno,
+    crypto: shim_crypto_1.crypto,
     fetch: undici_1.fetch,
     File: undici_1.File,
     FormData: undici_1.FormData,

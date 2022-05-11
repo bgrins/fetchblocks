@@ -5418,6 +5418,9 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
 } else {
     DOMParser = window.DOMParser;
 }
+let nanoid = (t1 = 21)=>crypto.getRandomValues(new Uint8Array(t1)).reduce((t, e)=>t += (e &= 63) < 36 ? e.toString(36) : e < 62 ? (e - 26).toString(36).toUpperCase() : e < 63 ? "_" : "-"
+    , "")
+;
 const LIQUID_ENGINE = new Liquid();
 if (typeof CustomEvent == "undefined") {
     global.CustomEvent = class CustomEvent extends Event {
@@ -5477,6 +5480,9 @@ blockLoaders.set("json", {
             throw new Error(`JSON must be an array for now: ${content}`);
         }
         return ret;
+    },
+    blockToString (block1) {
+        return JSON.stringify(block1);
     }
 });
 blockLoaders.set("js", {
@@ -5558,8 +5564,8 @@ const fetchblocks = (()=>{
             if (!blockLoaders.has(loader)) {
                 throw new Error(`Missing loader ${loader}`);
             }
-            let l = blockLoaders.get(loader);
-            let obj = await l.getBlock(text, options);
+            let blockLoader = blockLoaders.get(loader);
+            let obj = await blockLoader.getBlock(text, options);
             try {
                 return new fetchblock(obj);
             } catch (e) {}
@@ -5586,11 +5592,11 @@ const fetchblocks = (()=>{
                 throw new Error(`Fetchblock couldn't be loaded from ${uri.toString()} - status ${response.status}`);
             }
             let text = await response.text();
-            let block1 = await this.loadFromText(text, loader, {
+            let block2 = await this.loadFromText(text, loader, {
                 base: uri,
                 response
             });
-            return block1;
+            return block2;
         },
         run (steps, dataset, options = {}) {
             if (!Array.isArray(steps)) {
@@ -5604,12 +5610,12 @@ const fetchblocks = (()=>{
 class fetchblock extends EventTarget {
     constructor(args){
         super();
+        this.id = nanoid();
         if (args.length === 0) {
             throw new Error("Must provide an array with steps, including a `fetch` or `block` as the first parameter");
         }
         this.remoteBlocks = new Set();
-        this.request = args[0];
-        this.transforms = args.slice(1);
+        this.steps = args;
         if (!this.type) {
             throw new Error("The request must be either `fetch` or `block`");
         }
@@ -5632,6 +5638,17 @@ class fetchblock extends EventTarget {
                 console.log(`Step #${e.detail.stepNum} complete`, e.detail.step);
             }
         });
+        this.addEventListener("RunComplete", (e)=>{
+            if (e.detail?.options?.verbose) {
+                console.log(`Run complete`, e.detail.value);
+            }
+        });
+    }
+    get request() {
+        return this.steps[0];
+    }
+    get transforms() {
+        return this.steps.slice(1);
     }
     get type() {
         if (this.request.resource || this.request.stubResponse) {
@@ -5641,6 +5658,7 @@ class fetchblock extends EventTarget {
             return "block";
         }
     }
+    stringify(type) {}
     async fetchData(fetchOptions = {}, options = {}) {
         if (fetchOptions.stubResponse) {
             return fetchOptions.stubResponse;
@@ -5687,13 +5705,11 @@ class fetchblock extends EventTarget {
     }
     async run(options = {}) {
         let { plan , step  } = await this.plan(options);
-        if (options.verbose) {
-            console.log(`Starting run (${plan.length} steps)`);
-        }
         while(plan.currentStep < plan.length){
             await step();
         }
-        return plan[plan.length - 1].stepValue;
+        let value = plan[plan.length - 1].stepValue;
+        return value;
     }
     liquify(plan, dataset) {
         for(var property in plan){
@@ -5752,6 +5768,7 @@ class fetchblock extends EventTarget {
         plan.currentStep = 0;
         this.dispatchEvent(new CustomEvent("PlanReady", {
             detail: {
+                fbid: this.id,
                 plan,
                 options
             }
@@ -5764,8 +5781,10 @@ class fetchblock extends EventTarget {
             let thisStep = plan[plan.currentStep];
             this.dispatchEvent(new CustomEvent("StepStarting", {
                 detail: {
+                    fbid: this.id,
                     stepNum: plan.currentStep + 1,
                     step: thisStep,
+                    plan,
                     options
                 }
             }));
@@ -5789,8 +5808,10 @@ class fetchblock extends EventTarget {
             plan.currentStep = plan.currentStep + 1;
             this.dispatchEvent(new CustomEvent("StepComplete", {
                 detail: {
+                    fbid: this.id,
                     stepNum: plan.currentStep,
                     step: thisStep,
+                    plan,
                     options
                 }
             }));
