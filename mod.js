@@ -228,6 +228,8 @@ const fetchblocks = (() => {
         uri = new URL(uri);
       }
 
+      console.log(uri);
+
       if (!(uri instanceof URL)) {
         throw new Error(`Invalid URI passed in to loadFromURI ${uri}`);
       }
@@ -275,13 +277,13 @@ class fetchblock extends EventTarget {
   constructor(args) {
     // Todo: only accept an array
     super();
-    this.id = nanoid();
-    if (args.length === 0) {
+    if (!Array.isArray(args) || args.length === 0) {
       throw new Error(
-        "Must provide an array with steps, including a `fetch` or `block` as the first parameter"
+        "Must provide an array with steps to create a fetchblock"
       );
     }
 
+    this.id = nanoid();
     // If we wanted to make sure the blocks are sane (no local functions etc)
     // if (args[0].block instanceof fetchblock) {
     //   args[0] = { block: args[0].block.steps };
@@ -292,7 +294,7 @@ class fetchblock extends EventTarget {
     this.steps = args;
 
     if (!this.type) {
-      throw new Error("The request must be either `fetch` or `block`");
+      throw new Error("The first step must be either `fetch` or `block`");
     }
 
     this.addEventListener("PlanReady", (e) => {
