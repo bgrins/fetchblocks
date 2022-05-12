@@ -13,6 +13,11 @@ import { isDeno, isNode } from "https://deno.land/x/which_runtime/mod.ts";
 // Publishing:
 // deno run -A --unstable scripts/build.js 0.1.2 && git commit -am 'tag' && git tag 0.1.2 && && npm publish --access=public npm/ && git push && git push origin --tags
 
+// Installing:
+// https://deno.land/manual/getting_started/installation
+// https://deno.land/manual/tools/script_installer
+// deno install -A -f -n fetchblocks ./cmd.js
+
 // Testing:
 // deno test -A test.js
 // npm --prefix npm test

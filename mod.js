@@ -228,8 +228,6 @@ const fetchblocks = (() => {
         uri = new URL(uri);
       }
 
-      console.log(uri);
-
       if (!(uri instanceof URL)) {
         throw new Error(`Invalid URI passed in to loadFromURI ${uri}`);
       }

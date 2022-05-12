@@ -36,7 +36,15 @@
 
     <script type="module">
       import { fetchblock } from "https://esm.sh/@bgrins/fetchblocks/web/bundle-module.js";
-
+      (async () => {
+        let block = new fetchblock([
+          {
+            resource: "https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF",
+          },
+        ]);
+        let response = await block.run();
+        console.log(response);
+      })();
       async function runWithLogging(steps, options) {
         let block = new fetchblock(steps);
         block.addEventListener("PlanReady", (e) => {
@@ -52,11 +60,7 @@
             "\nStepComplete" + JSON.stringify(e.detail, null, 2);
         });
 
-        let result = await block.run({
-          dataset: {
-            hue: 1,
-          },
-        });
+        let result = await block.run(options);
         document.querySelector("#result").textContent +=
           "\n" + JSON.stringify(result, null, 2);
       }
