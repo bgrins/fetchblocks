@@ -8,9 +8,15 @@ import { exists, existsSync } from "https://deno.land/std/fs/mod.ts";
 // deno run -A cmd.js testdata/blocks/top-stars.json --dataset num_rows=10
 
 async function main(args) {
-  const { type, name, not, help, dataset, _ } = parse(args);
+  const parsed = parse(args);
+  const { format, help, verbose = false, dataset, _ } = parsed;
+  const dryRun = parsed["dry-run"];
+  const [file] = _;
 
-  let [file] = _;
+  if (help) {
+    console.log("Todo: help text");
+    return;
+  }
 
   if (file === "new") {
     let resource = _[1];
@@ -55,11 +61,22 @@ async function main(args) {
   }
 
   let block = await fetchblocks.loadFromURI(url);
-  let resp = await block.run({
-    dataset: ds,
-  });
 
-  console.log(resp);
+  let resp;
+  if (dryRun) {
+    resp = await block.plan({
+      dataset: ds,
+      verbose,
+    });
+    console.log(`Not running because --dry-run was passed. Here's the plan (${resp.plan.length} steps)`);
+    console.table(resp.plan.map((step) => [step]));
+  } else {
+    resp = await block.run({
+      dataset: ds,
+      verbose,
+    });
+    console.log(resp);
+  }
 }
 
 main(Deno.args);
