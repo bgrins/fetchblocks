@@ -211,7 +211,7 @@ const fetchblocks = (() => {
       }
 
       if (!blockLoaders.has(loader)) {
-        throw new Error(`Missing loader ${loader}`);
+        throw new Error(`Couldn't find a valid fetchblock`);
       }
 
       let blockLoader = blockLoaders.get(loader);

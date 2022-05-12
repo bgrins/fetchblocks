@@ -252,6 +252,7 @@ const fetchblocks = (() => {
         );
       }
       let text = await response.text();
+      console.log(text);
       let block = await this.loadFromText(text, loader, {
         base: uri,
         response,
