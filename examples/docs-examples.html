@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <style></style>
+  </head>
+  <body>
+    <script type="module">
+      import { fetchblock, fetchblocks } from "https://esm.sh/@bgrins/fetchblocks/web/bundle-module.js";
+
+      await (async () => {
+        let block = new fetchblock([
+          {
+            resource: "https://x-colors.herokuapp.com/api/hex2rgb?value=ffffff",
+          },
+        ]);
+        let response = await block.run();
+
+        let result = document.createElement("pre");
+        result.textContent = JSON.stringify(response);
+        document.body.append(result);
+      })();
+
+      await (async () => {
+        let block = new fetchblock([
+          {
+            resource:
+              "https://x-colors.herokuapp.com/api/hex2rgb?value={{dataset.hex}}",
+          },
+        ]);
+        let response = await block.run({
+          dataset: {
+            hex: "000000",
+          },
+        });
+
+        let result = document.createElement("pre");
+        result.textContent = JSON.stringify(response);
+        document.body.append(result);
+      })();
+
+      await (async () => {
+        let block = await fetchblocks.loadFromURI(
+          "https://gist.githubusercontent.com/bgrins/fc9cf06de8b0118bd18e4c3d08cd092b/raw/f3d4fb66655cc2e669a1c83679953b9f3b39e2ca/test.json"
+        );
+        let response = await block.run({
+          dataset: {
+            hex: "ff00ff",
+          },
+        });
+
+        let result = document.createElement("pre");
+        result.textContent = JSON.stringify(response);
+        document.body.append(result);
+      })();
+    </script>
+  </body>
+</html>
