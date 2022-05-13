@@ -486,11 +486,11 @@ class fetchblock extends EventTarget {
     if (secrets.length) {
       let requestURL = new URL(plan[0].resource);
       for (let [k, v] of secrets) {
-        if (v.allowedOrigins && !v.allowedOrigins.includes(requestURL.origin)) {
+        if (!v.allowedOrigins || !v.allowedOrigins.includes(requestURL.origin)) {
           throw new Error(
             `Aborting. Attempted to use a disallowed key: ${k} at origin ${
               requestURL.origin
-            }. Allowed origins: ${v.allowedOrigins.join()}`
+            }. Allowed origins: ${v.allowedOrigins?.join() || "none"}`
           );
         } else {
           dataset[k] = v.value;

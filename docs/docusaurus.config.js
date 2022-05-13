@@ -19,6 +19,26 @@ const config = {
   organizationName: "bgrins", // Usually your GitHub org/user name.
   projectName: "fetchblocks", // Usually your repo name.
 
+  stylesheets: [
+    {
+      href: "/codemirror.css",
+    },
+  ],
+  scripts: [
+    {
+      src: "/codemirror.js",
+      async: false,
+    },
+    {
+      src: "/htmlmixed.js",
+      async: false,
+    },
+    {
+      src: "/javascript.js",
+      async: false,
+    },
+  ],
+
   // Even if you don't use internalization, you can use this field to set useful
   // metadata like html lang. For example, if your site is Chinese, you may want
   // to replace "en" with "zh-Hans".
@@ -36,10 +56,7 @@ const config = {
           routeBasePath: "/",
           sidebarPath: require.resolve("./sidebars.js"),
           sidebarCollapsible: false,
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          // editUrl:
-          //   'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          breadcrumbs: false,
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
@@ -58,6 +75,15 @@ const config = {
           src: "img/logo.svg",
         },
         items: [
+          {
+            href: "/debugger",
+            label: "FetchBlocks Debugger",
+            position: "right",
+            style: {
+              backgroundColor: "rgba(128, 128, 128, .2)",
+              borderRadius: "5px",
+            },
+          },
           {
             href: "https://github.com/bgrins/fetchblocks",
             label: "GitHub",

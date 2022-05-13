@@ -131,6 +131,25 @@ Deno.test("fetchblocks - jmespath", async () => {
       },
     ]
   );
+
+  // TODO
+  // assertEquals(
+  //   await fetchblocks.run([
+  //     {
+  //       resource:
+  //         "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
+  //     },
+  //     { type: "jmespath", value: "Results[].{name: Make_Name, id: Make_ID}" },
+  //     { type: "json_to_csv" },
+  //     { type: "script", value: "return input.split('\\n').slice(0, 5).join('\\n')" },
+  //   ]),
+  //   [
+  //     {
+  //       id: 440,
+  //       name: "ASTON MARTIN",
+  //     },
+  //   ]
+  // );
 });
 
 Deno.test("fetchblocks - notion", async () => {
@@ -149,7 +168,7 @@ Deno.test("fetchblocks - notion", async () => {
     {
       type: "jmespath",
       value: "{{dataset.jmespath}}",
-    }
+    },
   ]);
 
   let childBlock = new fetchblock([
@@ -158,7 +177,7 @@ Deno.test("fetchblocks - notion", async () => {
     {
       type: "jmespath",
       value: "*",
-    }
+    },
   ]);
 
   assertEquals((await block.plan()).plan.length, 2);
@@ -206,6 +225,18 @@ Deno.test("fetchblocks throws on disallowed origin", async () => {
     assert(false, "Should have thrown");
   } catch (e) {
     assert(true, `Threw ${e}`);
+  }
+  try {
+    await fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
+      dataset: {
+        token: {
+          value: "foo",
+        },
+      },
+    });
+    assert(false, "Should have thrown");
+  } catch (e) {
+    assert(true, `Threw ${e} with no allowedOrigins set`);
   }
   try {
     await fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
@@ -304,13 +335,12 @@ Deno.test("dependency graphs", async () => {
       "html"
     );
     resp = await block.run();
-    assert(false, "Cyclic dependency should throw")
-  } catch(e) {
-    assert(true, "Threw exception: " + e)
+    assert(false, "Cyclic dependency should throw");
+  } catch (e) {
+    assert(true, "Threw exception: " + e);
   }
-
 });
-  Deno.test("remote html load", async () => {
+Deno.test("remote html load", async () => {
   if (isNode) {
     // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
     // and loadfromtext instead.
@@ -387,7 +417,7 @@ Deno.test("fetchblocks custom script", async () => {
         }
         return todos;
         `,
-      }
+      },
     ]).run({
       // TODO: simplify this to take a single options thing with dataset as key
       verbose: true,
@@ -435,7 +465,7 @@ Deno.test("md to csv", async () => {
     { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" },
 
     // Grab the relevant columns (name, stars, forks)
-    { type: "jmespath", value: "[][1:4].text" }
+    { type: "jmespath", value: "[][1:4].text" },
   ]);
 
   let ret = await block.run({

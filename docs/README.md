@@ -8,6 +8,12 @@ This website is built using [Docusaurus 2](https://docusaurus.io/), a modern sta
 $ yarn
 ```
 
+### Updating codemirror
+cp node_modules/codemirror/lib/codemirror.js static 
+cp node_modules/codemirror/lib/codemirror.css static
+cp node_modules/codemirror/mode/javascript/javascript.js static
+cp node_modules/codemirror/mode/htmlmixed/htmlmixed.js static 
+
 ### Local Development
 
 ```

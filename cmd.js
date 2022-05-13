@@ -42,8 +42,16 @@ async function main(args) {
     } else {
       let split = dataset.split("=");
       ds[split[0]] = split[1];
+
+      try {
+        // Handle `--dataset num_rows='{"value": 10}'`
+        ds[split[0]] = JSON.parse(ds[split[0]]);
+      } catch(e) { }
     }
   }
+
+
+  console.log(ds);
 
   let url;
   try {
