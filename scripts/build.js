@@ -17,7 +17,7 @@ await copySync("testdata", "npm/src/testdata");
 await copySync("testdata", "npm/script/testdata");
 
 await build({
-  entryPoints: ["./mod.js", "./cmd.js"],
+  entryPoints: ["./mod.js"],
   outDir: "./npm",
   shims: {
     // see JS docs for overview and more options

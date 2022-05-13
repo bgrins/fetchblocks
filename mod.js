@@ -28,6 +28,10 @@ function textIsJSON(text) {
 }
 
 const builtins = {
+  log(data) {
+    console.log(data);
+    return data;
+  },
   noop(data, transform) {
     return jsEval("return builtins.noop(input, options)", data, transform);
   },
