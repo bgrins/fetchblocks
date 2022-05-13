@@ -3,7 +3,7 @@
   "main": "./script/mod.js",
   "types": "./types/mod.js",
   "name": "@bgrins/fetchblocks",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Experimental - library cross compiled to node/web/deno",
   "license": "MIT",
   "repository": {
