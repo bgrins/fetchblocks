@@ -193,12 +193,18 @@ Deno.test("fetchblocks - notion", async () => {
   });
   assertEquals(ret, [
     {
-      content: "Take Fig on a walk",
+      content: "Make dinner",
+      due: "2022-05-13T23:13:00.000Z",
+      id: "87233bfa-99c5-40eb-b00e-d8bb61fb7356",
+    },
+
+    {
+      content: "Take fig on walk",
       due: "2022-05-02T20:42:00.000Z",
       id: "419c593d-6105-4467-b295-7de3eb6e9ee3",
     },
     {
-      content: "Add more todos",
+      content: "Go to park",
       due: "2022-05-02T20:42:00.000Z",
       id: "bcc33e0c-8377-438f-b5cd-3eb89f75234c",
     },

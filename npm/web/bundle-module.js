@@ -5442,6 +5442,10 @@ function textIsJSON(text) {
     return false;
 }
 const builtins = {
+    log (data) {
+        console.log(data);
+        return data;
+    },
     noop (data, transform) {
         return jsEval("return builtins.noop(input, options)", data, transform);
     },
@@ -5562,7 +5566,7 @@ const fetchblocks = (()=>{
                 }
             }
             if (!blockLoaders.has(loader)) {
-                throw new Error(`Missing loader ${loader}`);
+                throw new Error(`Couldn't find a valid fetchblock`);
             }
             let blockLoader = blockLoaders.get(loader);
             let obj = await blockLoader.getBlock(text, options);
@@ -5610,14 +5614,14 @@ const fetchblocks = (()=>{
 class fetchblock extends EventTarget {
     constructor(args){
         super();
-        this.id = nanoid();
-        if (args.length === 0) {
-            throw new Error("Must provide an array with steps, including a `fetch` or `block` as the first parameter");
+        if (!Array.isArray(args) || args.length === 0) {
+            throw new Error("Must provide an array with steps to create a fetchblock");
         }
+        this.id = nanoid();
         this.remoteBlocks = new Set();
         this.steps = args;
         if (!this.type) {
-            throw new Error("The request must be either `fetch` or `block`");
+            throw new Error("The first step must be either `fetch` or `block`");
         }
         this.addEventListener("PlanReady", (e)=>{
             if (e.detail?.options?.verbose) {
@@ -5758,8 +5762,8 @@ class fetchblock extends EventTarget {
         if (secrets.length) {
             let requestURL = new URL(plan[0].resource);
             for (let [k, v] of secrets){
-                if (v.allowedOrigins && !v.allowedOrigins.includes(requestURL.origin)) {
-                    throw new Error(`Aborting. Attempted to use a disallowed key: ${k} at origin ${requestURL.origin}. Allowed origins: ${v.allowedOrigins.join()}`);
+                if (!v.allowedOrigins || !v.allowedOrigins.includes(requestURL.origin)) {
+                    throw new Error(`Aborting. Attempted to use a disallowed key: ${k} at origin ${requestURL.origin}. Allowed origins: ${v.allowedOrigins?.join() || "none"}`);
                 } else {
                     dataset[k] = v.value;
                 }

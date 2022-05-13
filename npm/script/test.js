@@ -31,6 +31,10 @@ const mod_js_2 = require("./deps/deno.land/x/which_runtime@0.2.0/mod.js");
 // deno run -A --unstable scripts/build.js 0.1.0
 // Publishing:
 // deno run -A --unstable scripts/build.js 0.1.2 && git commit -am 'tag' && git tag 0.1.2 && && npm publish --access=public npm/ && git push && git push origin --tags
+// Installing:
+// https://deno.land/manual/getting_started/installation
+// https://deno.land/manual/tools/script_installer
+// deno install -A -f -n fetchblocks ./cmd.js
 // Testing:
 // deno test -A test.js
 // npm --prefix npm test
@@ -109,6 +113,24 @@ dntShim.Deno.test("fetchblocks - jmespath", async () => {
             name: "ASTON MARTIN",
         },
     ]);
+    // TODO
+    // assertEquals(
+    //   await fetchblocks.run([
+    //     {
+    //       resource:
+    //         "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
+    //     },
+    //     { type: "jmespath", value: "Results[].{name: Make_Name, id: Make_ID}" },
+    //     { type: "json_to_csv" },
+    //     { type: "script", value: "return input.split('\\n').slice(0, 5).join('\\n')" },
+    //   ]),
+    //   [
+    //     {
+    //       id: 440,
+    //       name: "ASTON MARTIN",
+    //     },
+    //   ]
+    // );
 });
 dntShim.Deno.test("fetchblocks - notion", async () => {
     // This is the internal JSON representation which can be used directly,
@@ -125,7 +147,7 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
         {
             type: "jmespath",
             value: "{{dataset.jmespath}}",
-        }
+        },
     ]);
     let childBlock = new mod_js_1.fetchblock([
         // Todo: external reference?
@@ -133,7 +155,7 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
         {
             type: "jmespath",
             value: "*",
-        }
+        },
     ]);
     (0, asserts_js_1.assertEquals)((await block.plan()).plan.length, 2);
     (0, asserts_js_1.assertEquals)((await childBlock.plan()).plan.length, 3);
@@ -146,12 +168,17 @@ dntShim.Deno.test("fetchblocks - notion", async () => {
     });
     (0, asserts_js_1.assertEquals)(ret, [
         {
-            content: "Take Fig on a walk",
+            content: "Make dinner",
+            due: "2022-05-13T23:13:00.000Z",
+            id: "87233bfa-99c5-40eb-b00e-d8bb61fb7356",
+        },
+        {
+            content: "Take fig on walk",
             due: "2022-05-02T20:42:00.000Z",
             id: "419c593d-6105-4467-b295-7de3eb6e9ee3",
         },
         {
-            content: "Add more todos",
+            content: "Go to park",
             due: "2022-05-02T20:42:00.000Z",
             id: "bcc33e0c-8377-438f-b5cd-3eb89f75234c",
         },
@@ -178,6 +205,19 @@ dntShim.Deno.test("fetchblocks throws on disallowed origin", async () => {
     }
     catch (e) {
         (0, asserts_js_1.assert)(true, `Threw ${e}`);
+    }
+    try {
+        await mod_js_1.fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
+            dataset: {
+                token: {
+                    value: "foo",
+                },
+            },
+        });
+        (0, asserts_js_1.assert)(false, "Should have thrown");
+    }
+    catch (e) {
+        (0, asserts_js_1.assert)(true, `Threw ${e} with no allowedOrigins set`);
     }
     try {
         await mod_js_1.fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
@@ -314,7 +354,7 @@ dntShim.Deno.test("fetchblocks custom script", async () => {
         }
         return todos;
         `,
-        }
+        },
     ]).run({
         // TODO: simplify this to take a single options thing with dataset as key
         verbose: true,
@@ -356,7 +396,7 @@ dntShim.Deno.test("md to csv", async () => {
         // Grab the first N rows
         { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" },
         // Grab the relevant columns (name, stars, forks)
-        { type: "jmespath", value: "[][1:4].text" }
+        { type: "jmespath", value: "[][1:4].text" },
     ]);
     let ret = await block.run({
         dataset: {

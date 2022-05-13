@@ -16,11 +16,6 @@
       "import": "./esm/mod.js",
       "require": "./script/mod.js",
       "types": "./types/mod.js"
-    },
-    "./cmd.js": {
-      "import": "./esm/cmd.js",
-      "require": "./script/cmd.js",
-      "types": "./types/cmd.js"
     }
   },
   "scripts": {

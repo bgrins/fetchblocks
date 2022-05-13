@@ -29,6 +29,10 @@ function textIsJSON(text) {
 }
 
 const builtins = {
+  log(data) {
+    console.log(data);
+    return data;
+  },
   noop(data, transform) {
     return jsEval("return builtins.noop(input, options)", data, transform);
   },
@@ -212,7 +216,7 @@ const fetchblocks = (() => {
       }
 
       if (!blockLoaders.has(loader)) {
-        throw new Error(`Missing loader ${loader}`);
+        throw new Error(`Couldn't find a valid fetchblock`);
       }
 
       let blockLoader = blockLoaders.get(loader);
@@ -276,13 +280,13 @@ class fetchblock extends EventTarget {
   constructor(args) {
     // Todo: only accept an array
     super();
-    this.id = nanoid();
-    if (args.length === 0) {
+    if (!Array.isArray(args) || args.length === 0) {
       throw new Error(
-        "Must provide an array with steps, including a `fetch` or `block` as the first parameter"
+        "Must provide an array with steps to create a fetchblock"
       );
     }
 
+    this.id = nanoid();
     // If we wanted to make sure the blocks are sane (no local functions etc)
     // if (args[0].block instanceof fetchblock) {
     //   args[0] = { block: args[0].block.steps };
@@ -293,7 +297,7 @@ class fetchblock extends EventTarget {
     this.steps = args;
 
     if (!this.type) {
-      throw new Error("The request must be either `fetch` or `block`");
+      throw new Error("The first step must be either `fetch` or `block`");
     }
 
     this.addEventListener("PlanReady", (e) => {
@@ -487,11 +491,11 @@ class fetchblock extends EventTarget {
     if (secrets.length) {
       let requestURL = new URL(plan[0].resource);
       for (let [k, v] of secrets) {
-        if (v.allowedOrigins && !v.allowedOrigins.includes(requestURL.origin)) {
+        if (!v.allowedOrigins || !v.allowedOrigins.includes(requestURL.origin)) {
           throw new Error(
             `Aborting. Attempted to use a disallowed key: ${k} at origin ${
               requestURL.origin
-            }. Allowed origins: ${v.allowedOrigins.join()}`
+            }. Allowed origins: ${v.allowedOrigins?.join() || "none"}`
           );
         } else {
           dataset[k] = v.value;

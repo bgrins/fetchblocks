@@ -3,9 +3,9 @@ export class fetchblock extends EventTarget {
     constructor(args: any);
     id: string;
     remoteBlocks: Set<any>;
-    steps: any;
+    steps: any[];
     get request(): any;
-    get transforms(): any;
+    get transforms(): any[];
     get type(): "fetch" | "block" | undefined;
     stringify(type: any): void;
     fetchData(fetchOptions?: {}, options?: {}): Promise<any>;
