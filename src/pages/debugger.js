@@ -1,6 +1,7 @@
 import React from "react";
 import * as ReactDOM from "react-dom";
 import Layout from "@theme/Layout";
+import BrowserOnly from "@docusaurus/BrowserOnly";
 import Head from "@docusaurus/Head";
 import {
   Button,
@@ -22,7 +23,6 @@ import RailRightClose from "@spectrum-icons/workflow/RailRightClose";
 import RailRightOpen from "@spectrum-icons/workflow/RailRightOpen";
 
 import ExecutionEnvironment from "@docusaurus/ExecutionEnvironment";
-import { fetchblock, fetchblocks } from "/static/bundle-module.js";
 
 const EXAMPLES = [
   {
@@ -59,13 +59,23 @@ const EXAMPLES = [
 ]`,
   },
 ];
+
 export default function Hello() {
   return (
-    <>
-      <Layout title="Debugger" description="FetchBlocks Debugger">
-        <div id="container"></div>
-      </Layout>
-    </>
+    <Layout title="Debugger" description="FetchBlocks Debugger">
+      <Head>
+        {/*
+        Docusaurus doesn't like when the bundle is imported as a module and you try to build static 
+        This file is just copied in from the main branch, something like
+        cp web/bundle-classic.js ../fetchblocks-docs/static.
+        So it either needs to be updated when the lib changes, or this should point to a CDN
+        */}
+        <script src="/bundle-classic.js"></script>
+      </Head>
+      <BrowserOnly>
+        {() => <div id="container"></div>}
+      </BrowserOnly>
+    </Layout>
   );
 }
 
@@ -185,7 +195,10 @@ async function runActiveBlock() {
     // TODO: abort signal
     // window.block?.destroy();
     window.block = null;
-    let block = await fetchblocks.loadFromText(window.editor.getValue());
+    // Todo: This is bundled weirdly
+    let block = await window.fetchblocks.fetchblocks.loadFromText(
+      window.editor.getValue()
+    );
     window.block = block;
 
     block.addEventListener("PlanReady", (e) => {
@@ -278,27 +291,15 @@ function App() {
     <>
       <Provider theme={defaultTheme} colorScheme="light">
         <Grid
-          areas={[
-            "header  header  header",
-            "sidebar content results",
-            "footer  footer footer",
-          ]}
-          columns={["auto", "1fr", "minmax(150px, 20vw)"]}
-          rows={["auto", "1fr", "auto"]}
+          areas={["sidebar content results", "footer  footer footer"]}
+          columns={["auto", "1fr", "minmax(300px, 30vw)"]}
+          rows={["1fr", "auto"]}
           height="calc(100vh - 60px)"
         >
           <View gridArea="header">
             <Flex flex="1">
               <Flex flex="1"></Flex>
               <View>
-                <Button
-                  variant="cta"
-                  onPress={async () => {
-                    runActiveBlock();
-                  }}
-                >
-                  Run
-                </Button>
                 {/* {runVisible ? (
                   <Button onPress={() => setRunVisible(!runVisible)}>
                     <RailRightClose />
@@ -326,6 +327,16 @@ function App() {
             gridArea="results"
             UNSAFE_style={{ paddingInlineStart: 5, overflow: "auto" }}
           >
+            <Flex flex="1" justifyContent="end">
+              <Button
+                variant="cta"
+                onPress={async () => {
+                  runActiveBlock();
+                }}
+              >
+                Run
+              </Button>
+            </Flex>
             <details open="open">
               <summary style={{ userSelect: "none" }}>Dataset</summary>
               <div id="datasetEditor"></div>
