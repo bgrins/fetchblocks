@@ -248,9 +248,7 @@ function App() {
   let [isRunning, setIsRunning] = React.useState(false);
   // let [runVisible, setRunVisible] = React.useState(true);
   let [activeFile, setActiveFile] = React.useState(0);
-  console.log("Rendering with", activeSteps, isRunning, activeFile);
   React.useEffect(() => {
-    console.log("REACT EFFECT REGISTERED");
     document.addEventListener("DebuggerRunStarted", (e) => {
       setIsRunning(true);
       // setActiveSteps(null);
@@ -347,6 +345,7 @@ function App() {
             ></RunResults>
           </View>
           <View backgroundColor="gray-500" gridArea="footer">
+            {/* Todo: emit timings from module */}
             Status area
           </View>
         </Grid>
