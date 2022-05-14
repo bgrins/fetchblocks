@@ -514,25 +514,39 @@ Deno.test("md to csv", async () => {
   );
 });
 Deno.test("multiple json blocks", async () => {
-  let resource = new URL(
+  for (let uri of [
     "./testdata/blocks/multiple-json.json#n_top_stars",
-    import.meta.url
-  ).toString();
-  console.log(resource);
+    "./testdata/blocks/multiple-json.json#n_top_stars_external_reference",
+  ]) {
+    let resource = new URL(uri, import.meta.url).toString();
+    let block = await fetchblocks.loadFromURI(resource);
+    let ret = await block.run({
+      dataset: {
+        num_rows: 3,
+      },
+    });
+    assertEquals(
+      ret,
+      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345939,28630\r\n" +
+        "[996.ICU](https://github.com/996icu/996.ICU),262207,21513\r\n" +
+        "[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232751,48776"
+    );
+  }
 
-  let block = await fetchblocks.loadFromURI(resource);
-
-  let ret = await block.run({
-    dataset: {
-      num_rows: 3,
-    },
-  });
-  assertEquals(
-    ret,
-    "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345939,28630\r\n" +
-      "[996.ICU](https://github.com/996icu/996.ICU),262207,21513\r\n" +
-      "[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232751,48776"
-  );
+  // TODO: see #n_top_stars_pure_transform. Should there be a way to share a set of transforms that
+  // don't have a fetch so that it's easier to share the steps with different fetches?
+  // For example:
+  /* {
+    "transforms":
+      [{ "type": "csv_to_json", }, { ... }],
+    "fetch_1": {
+      [ { resource: "example.com" }, { "block": "#transforms" }],
+    "fetch_2": {
+      [ { resource: "example.org" }, { "block": "#transforms" }],
+    }
+  } */
+  // The rules would be that a pure transform block must not have a top level fetch / block,
+  // While a normal block must have a top level fetch / block.
 });
 Deno.test("graphql", async () => {
   if (isNode) {

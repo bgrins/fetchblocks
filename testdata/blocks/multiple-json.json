@@ -23,6 +23,41 @@
       "type": "json_to_csv"
     }
   ],
+  "n_top_stars_external_reference": [
+    {
+      "block": "./json-external-reference.json"
+    },
+    {
+      "type": "md_to_json"
+    },
+    {
+      "type": "jmespath",
+      "value": "[].rows[0:{{dataset.num_rows}}]"
+    },
+    {
+      "type": "jmespath",
+      "value": "[][1:4].text"
+    },
+    {
+      "type": "json_to_csv"
+    }
+  ],
+  "n_top_stars_pure_transform": [
+    {
+      "type": "md_to_json"
+    },
+    {
+      "type": "jmespath",
+      "value": "[].rows[0:{{dataset.num_rows}}]"
+    },
+    {
+      "type": "jmespath",
+      "value": "[][1:4].text"
+    },
+    {
+      "type": "json_to_csv"
+    }
+  ],
   "activities": [
     {
       "resource": "https://raw.githubusercontent.com/mozilla/standards-positions/main/activities.json"
