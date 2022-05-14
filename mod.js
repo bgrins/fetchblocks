@@ -98,12 +98,33 @@ blockLoaders.set("json", {
       return true;
     } catch (e) {}
   },
-  async getBlock(content) {
+  async getBlock(content, options) {
     let ret = JSON.parse(content);
+
+    let base;
+    if (options?.base) {
+      base = new URL(options?.base);
+    }
+
+    // Accept multiple blocks like so:
+    // { "one": [{ }],"two": [{ }] }
+    let id = base && base.hash.substr(1);
+    if (id && ret.hasOwnProperty(id)) {
+      ret = ret[id];
+    }
 
     if (!Array.isArray(ret)) {
       throw new Error(`JSON must be an array for now: ${content}`);
     }
+
+    if (base) {
+      if (ret[0].block) {
+        ret[0].block = new URL(ret[0].block, base).toString();
+      } else if (ret[0].resource) {
+        ret[0].resource = new URL(ret[0].resource, base).toString();
+      }
+    }
+
     return ret;
   },
   blockToString(block) {
@@ -222,9 +243,9 @@ const fetchblocks = (() => {
       let obj = await blockLoader.getBlock(text, options);
       try {
         return new fetchblock(obj);
-      } catch (e) {}
-
-      throw new Error(`Loader ${loader} returned an empty object`);
+      } catch (e) {
+        throw new Error(`Loader ${loader} returned an empty object. Error: ${e}`)
+      }
     },
 
     async loadFromURI(uri, loader) {
@@ -490,7 +511,10 @@ class fetchblock extends EventTarget {
     if (secrets.length) {
       let requestURL = new URL(plan[0].resource);
       for (let [k, v] of secrets) {
-        if (!v.allowedOrigins || !v.allowedOrigins.includes(requestURL.origin)) {
+        if (
+          !v.allowedOrigins ||
+          !v.allowedOrigins.includes(requestURL.origin)
+        ) {
           throw new Error(
             `Aborting. Attempted to use a disallowed key: ${k} at origin ${
               requestURL.origin

@@ -513,7 +513,27 @@ Deno.test("md to csv", async () => {
     "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
   );
 });
+Deno.test("multiple json blocks", async () => {
+  let resource = new URL(
+    "./testdata/blocks/multiple-json.json#n_top_stars",
+    import.meta.url
+  ).toString();
+  console.log(resource);
 
+  let block = await fetchblocks.loadFromURI(resource);
+
+  let ret = await block.run({
+    dataset: {
+      num_rows: 3,
+    },
+  });
+  assertEquals(
+    ret,
+    "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345939,28630\r\n" +
+      "[996.ICU](https://github.com/996icu/996.ICU),262207,21513\r\n" +
+      "[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232751,48776"
+  );
+});
 Deno.test("graphql", async () => {
   if (isNode) {
     // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
