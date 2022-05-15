@@ -116,13 +116,17 @@ blockLoaders.set("json", {
     let ret = JSON.parse(content);
 
     let base;
+    let id;
     if (options?.base) {
       base = new URL(options?.base);
+      id = base && base.hash.substr(1);
+    }
+    if (options?.id) {
+      id = options.id;
     }
 
     // Accept multiple blocks like so:
     // { "one": [{ }],"two": [{ }] }
-    let id = base && base.hash.substr(1);
     if (id && ret.hasOwnProperty(id)) {
       ret = ret[id];
     }
@@ -133,6 +137,9 @@ blockLoaders.set("json", {
 
     if (base) {
       if (ret[0].block) {
+        // Todo: how to handle debugger case where there's no URL?
+        // This is prob similar to the potential optimization for local links
+        // on remote files. 
         ret[0].block = new URL(ret[0].block, base).toString();
       } else if (ret[0].resource) {
         ret[0].resource = new URL(ret[0].resource, base).toString();
@@ -174,11 +181,15 @@ blockLoaders.set("html", {
     let dom = new DOMParser().parseFromString(content, "text/html");
 
     let base;
+    let id;
     if (options?.base) {
       base = new URL(options?.base);
+      id = base && base.hash.substr(1);
+    }
+    if (options?.id) {
+      id = options.id;
     }
 
-    let id = base && base.hash.substr(1);
     let htmlBlock;
     if (id) {
       htmlBlock = dom.getElementById(id);

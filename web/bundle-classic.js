@@ -5498,10 +5498,14 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         async getBlock (content, options) {
             let ret = JSON.parse(content);
             let base;
+            let id;
             if (options?.base) {
                 base = new URL(options?.base);
+                id = base && base.hash.substr(1);
             }
-            let id = base && base.hash.substr(1);
+            if (options?.id) {
+                id = options.id;
+            }
             if (id && ret.hasOwnProperty(id)) {
                 ret = ret[id];
             }
@@ -5551,10 +5555,14 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         async getBlock (content, options) {
             let dom = new DOMParser().parseFromString(content, "text/html");
             let base;
+            let id;
             if (options?.base) {
                 base = new URL(options?.base);
+                id = base && base.hash.substr(1);
             }
-            let id = base && base.hash.substr(1);
+            if (options?.id) {
+                id = options.id;
+            }
             let htmlBlock;
             if (id) {
                 htmlBlock = dom.getElementById(id);
