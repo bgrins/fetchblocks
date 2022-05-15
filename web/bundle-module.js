@@ -5478,10 +5478,41 @@ blockLoaders.set("json", {
             return true;
         } catch (e) {}
     },
-    async getBlock (content) {
+    getLikelyBlocks (content) {
+        try {
+            let obj = JSON.parse(content);
+            if (Array.isArray(obj)) {
+                return [
+                    "default"
+                ];
+            }
+            if (typeof obj == "object") {
+                return Object.keys(obj).filter((key)=>{
+                    return Array.isArray(obj[key]);
+                });
+            }
+            return true;
+        } catch (e) {}
+    },
+    async getBlock (content, options) {
         let ret = JSON.parse(content);
+        let base;
+        if (options?.base) {
+            base = new URL(options?.base);
+        }
+        let id = base && base.hash.substr(1);
+        if (id && ret.hasOwnProperty(id)) {
+            ret = ret[id];
+        }
         if (!Array.isArray(ret)) {
             throw new Error(`JSON must be an array for now: ${content}`);
+        }
+        if (base) {
+            if (ret[0].block) {
+                ret[0].block = new URL(ret[0].block, base).toString();
+            } else if (ret[0].resource) {
+                ret[0].resource = new URL(ret[0].resource, base).toString();
+            }
         }
         return ret;
     },
@@ -5491,13 +5522,30 @@ blockLoaders.set("json", {
 });
 blockLoaders.set("js", {
     shouldHandle (content) {},
-    async getBlock () {
+    getLikelyBlocks (text) {
         return;
+    },
+    async getBlock () {
+        throw new Error("JS Loader unimplemented");
     }
 });
 blockLoaders.set("html", {
     shouldHandle (content) {
         return content.indexOf("<fetch-block") != -1;
+    },
+    getLikelyBlocks (content) {
+        let dom = new DOMParser().parseFromString(content, "text/html");
+        let allBlocks = dom.querySelectorAll("fetch-block");
+        if (allBlocks.length == 1) {
+            return [
+                "default"
+            ];
+        }
+        return [
+            ...allBlocks
+        ].filter((block2)=>!!block2.id
+        ).map((block3)=>block3.id
+        );
     },
     async getBlock (content, options) {
         let dom = new DOMParser().parseFromString(content, "text/html");
@@ -5556,14 +5604,30 @@ const fetchblocks = (()=>{
     return {
         blockLoaders,
         env: new Map(Object.entries(CONFIG)),
+        getLoaderForText (text) {
+            let loader;
+            for (let [key, value] of blockLoaders.entries()){
+                if (value.shouldHandle(text)) {
+                    loader = key;
+                    break;
+                }
+            }
+            return loader;
+        },
+        getLikelyBlocksFromText (text, loader) {
+            if (!loader) {
+                loader = this.getLoaderForText(text);
+            }
+            if (!blockLoaders.has(loader)) {
+                return [];
+            }
+            let blockLoader = blockLoaders.get(loader);
+            let obj = blockLoader.getLikelyBlocks(text);
+            return obj || [];
+        },
         async loadFromText (text, loader, options) {
             if (!loader) {
-                for (let [key, value] of blockLoaders.entries()){
-                    if (value.shouldHandle(text)) {
-                        loader = key;
-                        break;
-                    }
-                }
+                loader = this.getLoaderForText(text);
             }
             if (!blockLoaders.has(loader)) {
                 throw new Error(`Couldn't find a valid fetchblock`);
@@ -5572,8 +5636,9 @@ const fetchblocks = (()=>{
             let obj = await blockLoader.getBlock(text, options);
             try {
                 return new fetchblock(obj);
-            } catch (e) {}
-            throw new Error(`Loader ${loader} returned an empty object`);
+            } catch (e) {
+                throw new Error(`Loader ${loader} returned an empty object. Error: ${e}`);
+            }
         },
         async loadFromURI (uri, loader) {
             if (typeof uri == "string") {
@@ -5596,11 +5661,11 @@ const fetchblocks = (()=>{
                 throw new Error(`Fetchblock couldn't be loaded from ${uri.toString()} - status ${response.status}`);
             }
             let text = await response.text();
-            let block2 = await this.loadFromText(text, loader, {
+            let block4 = await this.loadFromText(text, loader, {
                 base: uri,
                 response
             });
-            return block2;
+            return block4;
         },
         run (steps, dataset, options = {}) {
             if (!Array.isArray(steps)) {
