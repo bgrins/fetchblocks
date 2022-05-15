@@ -527,9 +527,9 @@ Deno.test("multiple json blocks", async () => {
     });
     assertEquals(
       ret,
-      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345939,28630\r\n" +
-        "[996.ICU](https://github.com/996icu/996.ICU),262207,21513\r\n" +
-        "[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232751,48776"
+      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345970,28632\r\n" +
+        "[996.ICU](https://github.com/996icu/996.ICU),262216,21510\r\n" +
+        "[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232815,48783"
     );
   }
 
@@ -548,6 +548,39 @@ Deno.test("multiple json blocks", async () => {
   // The rules would be that a pure transform block must not have a top level fetch / block,
   // While a normal block must have a top level fetch / block.
 });
+Deno.test("likely blocks", async () => {
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`{
+      "fetch_1": [{ "resource": "example.com" }],
+      "fetch_2": [{ "resource": "example.org" }]
+    }`),
+    ["fetch_1", "fetch_2"]
+  );
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`[{ "resource": "example.com" }]`),
+    ["default"]
+  );
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`invalid block text`),
+    []
+  );
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`
+    <fetch-block id="fetch_1" resource="http://example.com"></fetch-block>
+    <fetch-block id="fetch_2" resource="http://example.com"></fetch-block>
+    `),
+    ["fetch_1", "fetch_2"]
+  );
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`<fetch-block resource="http://example.com"></fetch-block>`),
+    ["default"]
+  );
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`<div></div>`),
+    []
+  );
+});
+
 Deno.test("graphql", async () => {
   if (isNode) {
     // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
