@@ -139,7 +139,7 @@ blockLoaders.set("json", {
       if (ret[0].block) {
         // Todo: how to handle debugger case where there's no URL?
         // This is prob similar to the potential optimization for local links
-        // on remote files. 
+        // on remote files.
         ret[0].block = new URL(ret[0].block, base).toString();
       } else if (ret[0].resource) {
         ret[0].resource = new URL(ret[0].resource, base).toString();
@@ -287,7 +287,7 @@ const fetchblocks = (() => {
     // We'll attempt to detect the appropriate loader, else you can
     // pass them in (default values "js", "html", "json" or you can
     // make your own with `fetchblocks.loader.set("foo", async (input) => {}))`
-    async loadFromText(text, loader, options) {
+    async loadFromText(text, loader, options = {}) {
       if (!loader) {
         loader = this.getLoaderForText(text);
       }
@@ -299,7 +299,10 @@ const fetchblocks = (() => {
       let blockLoader = blockLoaders.get(loader);
       let obj = await blockLoader.getBlock(text, options);
       try {
-        return new fetchblock(obj);
+        return new fetchblock(obj, {
+          sourceText: text,
+          loader: loader,
+        });
       } catch (e) {
         throw new Error(
           `Loader ${loader} returned an empty object. Error: ${e}`
@@ -356,16 +359,29 @@ const fetchblocks = (() => {
 })();
 
 class fetchblock extends EventTarget {
-  constructor(args) {
+  constructor(steps, options = {}) {
     // Todo: only accept an array
     super();
-    if (!Array.isArray(args) || args.length === 0) {
+    if (!Array.isArray(steps) || steps.length === 0) {
       throw new Error(
         "Must provide an array with steps to create a fetchblock"
       );
     }
 
     this.id = nanoid();
+
+    if (options.sourceText) {
+      Object.defineProperty(this, "sourceText", {
+        value: options.sourceText,
+        writable: false,
+      });
+    }
+    if (options.loader) {
+      Object.defineProperty(this, "loader", {
+        value: options.loader,
+        writable: false,
+      });
+    }
     // If we wanted to make sure the blocks are sane (no local functions etc)
     // if (args[0].block instanceof fetchblock) {
     //   args[0] = { block: args[0].block.steps };
@@ -373,7 +389,7 @@ class fetchblock extends EventTarget {
     // args = JSON.parse(JSON.stringify(args));
 
     this.remoteBlocks = new Set();
-    this.steps = args;
+    this.steps = steps;
 
     if (!this.type) {
       throw new Error("The first step must be either `fetch` or `block`");
@@ -534,7 +550,20 @@ class fetchblock extends EventTarget {
         }
 
         this.remoteBlocks.add(key);
-        this.parent = await fetchblocks.loadFromURI(this.parent);
+        if (key.startsWith("#") && this.sourceText) {
+          // Optimization - if we have a local link within the same file then reuse
+          // the same text rather than hitting the network again.
+          this.parent = await fetchblocks.loadFromText(
+            this.sourceText,
+            this.loader,
+            {
+              id: key.substr(1),
+            }
+          );
+        } else {
+          this.parent = await fetchblocks.loadFromURI(this.parent);
+        }
+
         this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
       }
 

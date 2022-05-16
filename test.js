@@ -259,6 +259,25 @@ Deno.test("fetchblocks throws on disallowed origin", async () => {
     assert(true, `Threw ${e}`);
   }
 });
+Deno.test("loadFromText with inheritance", async () => {
+  let block = await fetchblocks.loadFromText(
+    Deno.readTextFileSync("./testdata/blocks/multiple-json.json"),
+    null,
+    {
+      id: "n_top_stars",
+    }
+  );
+  let ret = await block.run({
+    dataset: {
+      num_rows: 3,
+    },
+  });
+  assertEquals(
+    ret,
+    "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
+  );
+});
+
 Deno.test("fetchblocks loaders", async () => {
   if (isNode) {
     // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
@@ -527,9 +546,7 @@ Deno.test("multiple json blocks", async () => {
     });
     assertEquals(
       ret,
-      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345970,28632\r\n" +
-        "[996.ICU](https://github.com/996icu/996.ICU),262216,21510\r\n" +
-        "[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232815,48783"
+      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
     );
   }
 
@@ -560,10 +577,7 @@ Deno.test("likely blocks", async () => {
     fetchblocks.getLikelyBlocksFromText(`[{ "resource": "example.com" }]`),
     ["default"]
   );
-  assertEquals(
-    fetchblocks.getLikelyBlocksFromText(`invalid block text`),
-    []
-  );
+  assertEquals(fetchblocks.getLikelyBlocksFromText(`invalid block text`), []);
   assertEquals(
     fetchblocks.getLikelyBlocksFromText(`
     <fetch-block id="fetch_1" resource="http://example.com"></fetch-block>
@@ -572,13 +586,12 @@ Deno.test("likely blocks", async () => {
     ["fetch_1", "fetch_2"]
   );
   assertEquals(
-    fetchblocks.getLikelyBlocksFromText(`<fetch-block resource="http://example.com"></fetch-block>`),
+    fetchblocks.getLikelyBlocksFromText(
+      `<fetch-block resource="http://example.com"></fetch-block>`
+    ),
     ["default"]
   );
-  assertEquals(
-    fetchblocks.getLikelyBlocksFromText(`<div></div>`),
-    []
-  );
+  assertEquals(fetchblocks.getLikelyBlocksFromText(`<div></div>`), []);
 });
 
 Deno.test("graphql", async () => {

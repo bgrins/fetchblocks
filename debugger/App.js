@@ -310,6 +310,7 @@ export function App() {
       mode: EXAMPLES[Object.keys(EXAMPLES)[0]].mode,
     });
     window.editor.on("change", async () => {
+      // TODO: also store the last known block id in case it becomes invalid during editing
       EXAMPLES[window.activeFile].content = window.editor.getValue();
       setActiveLoader(fetchblocks.getLoaderForText(window.editor.getValue()));
       let likelyBlocks = fetchblocks.getLikelyBlocksFromText(
@@ -406,6 +407,7 @@ export function App() {
           </View>
           <View
             gridArea="results"
+            id="run-results"
             UNSAFE_style={{ paddingInlineStart: 5, overflow: "auto" }}
           >
             <Flex flex="1" justifyContent="end">

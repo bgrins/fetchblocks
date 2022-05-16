@@ -5634,7 +5634,7 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                 let obj = blockLoader.getLikelyBlocks(text);
                 return obj || [];
             },
-            async loadFromText (text, loader, options) {
+            async loadFromText (text, loader, options = {}) {
                 if (!loader) {
                     loader = this.getLoaderForText(text);
                 }
@@ -5644,7 +5644,10 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                 let blockLoader = blockLoaders.get(loader);
                 let obj = await blockLoader.getBlock(text, options);
                 try {
-                    return new fetchblock(obj);
+                    return new fetchblock(obj, {
+                        sourceText: text,
+                        loader: loader
+                    });
                 } catch (e) {
                     throw new Error(`Loader ${loader} returned an empty object. Error: ${e}`);
                 }
@@ -5686,14 +5689,26 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         };
     })();
     class fetchblock extends EventTarget {
-        constructor(args){
+        constructor(steps, options = {}){
             super();
-            if (!Array.isArray(args) || args.length === 0) {
+            if (!Array.isArray(steps) || steps.length === 0) {
                 throw new Error("Must provide an array with steps to create a fetchblock");
             }
             this.id = nanoid();
+            if (options.sourceText) {
+                Object.defineProperty(this, "sourceText", {
+                    value: options.sourceText,
+                    writable: false
+                });
+            }
+            if (options.loader) {
+                Object.defineProperty(this, "loader", {
+                    value: options.loader,
+                    writable: false
+                });
+            }
             this.remoteBlocks = new Set();
-            this.steps = args;
+            this.steps = steps;
             if (!this.type) {
                 throw new Error("The first step must be either `fetch` or `block`");
             }
@@ -5813,7 +5828,13 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                         throw new Error(`Duplicate block detected: ${key}`);
                     }
                     this.remoteBlocks.add(key);
-                    this.parent = await fetchblocks.loadFromURI(this.parent);
+                    if (key.startsWith("#") && this.sourceText) {
+                        this.parent = await fetchblocks.loadFromText(this.sourceText, this.loader, {
+                            id: key.substr(1)
+                        });
+                    } else {
+                        this.parent = await fetchblocks.loadFromURI(this.parent);
+                    }
                     this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
                 }
                 let parentFlattened = await this.parent.flatten();

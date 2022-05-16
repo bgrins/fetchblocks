@@ -1,9 +1,13 @@
+@import url("codemirror.css");
+
 body,
 html {
   margin: 0;
   padding: 0;
 }
-#container, #container > *, #container > * > * {
+#container,
+#container > *,
+#container > * > * {
   height: 100vh;
   box-sizing: border-box;
   overflow: auto;
@@ -16,3 +20,8 @@ html {
 }
 /* TODO: make the container have it's child automatically expand so we 
     don't need to hardcode the grid height in the JS file */
+
+#run-results pre {
+  max-height: 200px;
+  overflow: auto;
+}
