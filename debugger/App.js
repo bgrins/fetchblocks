@@ -24,22 +24,33 @@ import RailRightOpen from "@spectrum-icons/workflow/RailRightOpen";
 const EXAMPLES = [
   {
     name: "Basic",
-    mode: "json",
+    mode: "application/json",
     content: `[
   { "resource": "https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF" }
 ]`,
   },
   {
     name: "Steps",
-    mode: "json",
+    mode: "application/json",
     content: `[
   { "resource": "https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF" },
   { "type": "script", "value": "return input.hex;" }
 ]`,
   },
   {
+    name: "HTML block",
+    mode: "text/html",
+    content: `<fetch-block resource="https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF">
+  <fetch-block-transform type="jmespath" value="hex"></fetch-block-transform>
+  <script type="text/fetch-block-transform">
+    return input.toLowerCase();
+  </script>
+</fetch-block>
+`,
+  },
+  {
     name: "Datasets",
-    mode: "json",
+    mode: "application/json",
     content: `[
   { "resource": "https://x-colors.herokuapp.com/api/random/{{dataset.hue}}" },
   { "type": "jmespath", "value": "hex" }
@@ -50,14 +61,14 @@ const EXAMPLES = [
   },
   {
     name: "HTML to CSV",
-    mode: "json",
+    mode: "application/json",
     content: `[
 { "resource": "https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF" }
 ]`,
   },
   {
     name: "JSON with multiple",
-    mode: "json",
+    mode: "application/json",
     content: `{
   "top_stars": [
     {
@@ -297,17 +308,30 @@ function RunAction(props) {
   );
 }
 export function App() {
+
+  // Remember / restore the last file
+  let initialFilename = window.localStorage.getItem("lastFile") || EXAMPLES[0].name;
+  let initialFileIndex = 0;
+  for (let [index, file] of EXAMPLES.entries()) {
+    if (file.name == initialFilename) {
+      initialFileIndex = index;
+      break;
+    }
+  }
+
   let [likelyBlocks, setLikelyBlocks] = React.useState([]);
   let [activeBlockId, setActiveBlockId] = React.useState(null);
   let [activeLoader, setActiveLoader] = React.useState(null);
   let [activeSteps, setActiveSteps] = React.useState(null);
   let [isRunning, setIsRunning] = React.useState(false);
   // let [runVisible, setRunVisible] = React.useState(true);
-  let [activeFile, setActiveFile] = React.useState(0);
+  let [activeFile, setActiveFile] = React.useState(initialFileIndex);
   React.useEffect(() => {
+
     window.editor = new CodeMirror(document.querySelector("#blockEditor"), {
       lineNumbers: true,
-      mode: EXAMPLES[Object.keys(EXAMPLES)[0]].mode,
+      lineWrapping: true,
+      mode: EXAMPLES[activeFile]?.mode,
     });
     window.editor.on("change", async () => {
       // TODO: also store the last known block id in case it becomes invalid during editing
@@ -325,7 +349,7 @@ export function App() {
     window.datasetEditor = CodeMirror(
       document.querySelector("#datasetEditor"),
       {
-        mode: "javascript",
+        mode: "application/json",
         value: `{
 "dataset": {
 
@@ -360,13 +384,17 @@ export function App() {
       content: "",
     };
     window.activeFile = activeFile;
-    // window.editor?.mode = EXAMPLES[activeFile]?.mode || "htmlmixed";
+    window.editor?.setOption("mode", EXAMPLES[activeFile]?.mode);
     window.editor?.setValue(fileObject.content);
     if (fileObject.defaultDataset) {
       window.datasetEditor?.setValue(JSON.stringify(fileObject.defaultDataset));
     } else {
       // TODO: remember edits to restore
       window.datasetEditor?.setValue("");
+    }
+
+    if (EXAMPLES[activeFile]) {
+      window.localStorage.setItem("lastFile", EXAMPLES[activeFile].name);
     }
   }, [activeFile]);
 
