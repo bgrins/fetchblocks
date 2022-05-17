@@ -140,6 +140,7 @@ function RunResults(props) {
               </Button>
             </span>
             <pre>
+              {/* todo this includes line breaks from fields within csv */}
               {typeof value.stepValue == "string"
                 ? value.stepValue
                 : JSON.stringify(value.stepValue, null, 2)}

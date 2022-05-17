@@ -3,3 +3,22 @@
 >
   <fetch-block-transform type="json_to_csv"></fetch-block-transform>
 </fetch-block>
+
+<!-- TODO: papaparse unparse doesn't handle the markdown in comments well here and that breaks csv export.
+     For now just don't include those fields  -->
+<fetch-block
+  id="open-issues"
+  resource="https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page={{ dataset.page | default: 1 }}&per_page={{ dataset.per_page | default: 5 }}"
+>
+  <fetch-block-transform
+    type="jmespath"
+    value="[].{id: id, title: title, url: url, reactions: reactions.total_count, created_at: created_at, updated_at: updated_at, user: user.login, labels: labels }"
+  ></fetch-block-transform>
+  <script type="text/fetch-block-transform">
+    for (let row of input) {
+      row.labels = row.labels.map(l=>l.name).join("|");
+    }
+    return input;
+  </script>
+  <fetch-block-transform type="json_to_csv"></fetch-block-transform>
+</fetch-block>

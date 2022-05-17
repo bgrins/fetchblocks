@@ -113,6 +113,56 @@ Deno.test("fetchblocks - builtins", async () => {
   );
 });
 
+Deno.test("fetchblocks - templating", async () => {
+  let template = await fetchblocks.loadFromText(
+    `[
+       {
+         "resource":
+           "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page={{ dataset.page | default: 1 }}&per_page={{ dataset.per_page | default: 1 }}"
+       }
+     ]`
+  );
+  assertEquals(
+    (
+      await template.plan({
+        dataset: {
+          page: 2,
+          per_page: 100,
+        },
+      })
+    ).plan[0],
+    {
+      resource:
+        "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=2&per_page=100",
+    }
+  );
+  assertEquals(
+    (
+      await template.plan({
+        dataset: {
+          per_page: 100,
+        },
+      })
+    ).plan[0],
+    {
+      resource:
+        "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=1&per_page=100",
+    }
+  );
+  assertEquals(
+    (
+      await template.plan({
+        dataset: {
+          page: 2,
+        },
+      })
+    ).plan[0],
+    {
+      resource:
+        "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=2&per_page=1",
+    }
+  );
+});
 Deno.test("fetchblocks - transform only", async () => {
   assertEquals(
     await fetchblocks.run([{ type: "jmespath", value: "a" }], {
