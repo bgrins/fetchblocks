@@ -61,6 +61,10 @@ mod_js_1.fetchblocks.env.set("NOTION_TOKEN", {
     value: mod_js_1.fetchblocks.env.get("NOTION_TOKEN"),
     allowedOrigins: ["https://api.notion.com"],
 });
+dntShim.Deno.test("fetchblocks - jseval", async () => {
+    // console.log(quickjs);
+    await (0, mod_js_1.qjs)();
+});
 dntShim.Deno.test("fetchblocks - builtins", async () => {
     // Directly test builtin functions. For now this is done by essentially eval'ing
     // but the intention here is that this will be wasmboxed
@@ -98,6 +102,36 @@ dntShim.Deno.test("fetchblocks - builtins", async () => {
             type: "heading",
         },
     ]);
+});
+dntShim.Deno.test("fetchblocks - templating", async () => {
+    let template = await mod_js_1.fetchblocks.loadFromText(`[
+       {
+         "resource":
+           "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page={{ dataset.page | default: 1 }}&per_page={{ dataset.per_page | default: 1 }}"
+       }
+     ]`);
+    (0, asserts_js_1.assertEquals)((await template.plan({
+        dataset: {
+            page: 2,
+            per_page: 100,
+        },
+    })).plan[0], {
+        resource: "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=2&per_page=100",
+    });
+    (0, asserts_js_1.assertEquals)((await template.plan({
+        dataset: {
+            per_page: 100,
+        },
+    })).plan[0], {
+        resource: "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=1&per_page=100",
+    });
+    (0, asserts_js_1.assertEquals)((await template.plan({
+        dataset: {
+            page: 2,
+        },
+    })).plan[0], {
+        resource: "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=2&per_page=1",
+    });
 });
 dntShim.Deno.test("fetchblocks - transform only", async () => {
     (0, asserts_js_1.assertEquals)(await mod_js_1.fetchblocks.run([{ type: "jmespath", value: "a" }], {

@@ -1,6 +1,6 @@
 import * as dntShim from "./_dnt.test_shims.js";
 import { assertEquals, assertObjectMatch, assert, } from "./deps/deno.land/std@0.137.0/testing/asserts.js";
-import { fetchblock, fetchblocks, jsEval } from "./mod.js";
+import { fetchblock, fetchblocks, jsEval, qjs } from "./mod.js";
 import { isNode } from "./deps/deno.land/x/which_runtime@0.2.0/mod.js";
 // Building for node and web:
 // deno run -A --unstable scripts/build.js 0.1.0
@@ -35,6 +35,10 @@ import { fetchblocks } from "@bgrins/fetchblocks"
 fetchblocks.env.set("NOTION_TOKEN", {
     value: fetchblocks.env.get("NOTION_TOKEN"),
     allowedOrigins: ["https://api.notion.com"],
+});
+dntShim.Deno.test("fetchblocks - jseval", async () => {
+    // console.log(quickjs);
+    await qjs();
 });
 dntShim.Deno.test("fetchblocks - builtins", async () => {
     // Directly test builtin functions. For now this is done by essentially eval'ing
@@ -73,6 +77,36 @@ dntShim.Deno.test("fetchblocks - builtins", async () => {
             type: "heading",
         },
     ]);
+});
+dntShim.Deno.test("fetchblocks - templating", async () => {
+    let template = await fetchblocks.loadFromText(`[
+       {
+         "resource":
+           "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page={{ dataset.page | default: 1 }}&per_page={{ dataset.per_page | default: 1 }}"
+       }
+     ]`);
+    assertEquals((await template.plan({
+        dataset: {
+            page: 2,
+            per_page: 100,
+        },
+    })).plan[0], {
+        resource: "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=2&per_page=100",
+    });
+    assertEquals((await template.plan({
+        dataset: {
+            per_page: 100,
+        },
+    })).plan[0], {
+        resource: "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=1&per_page=100",
+    });
+    assertEquals((await template.plan({
+        dataset: {
+            page: 2,
+        },
+    })).plan[0], {
+        resource: "https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page=2&per_page=1",
+    });
 });
 dntShim.Deno.test("fetchblocks - transform only", async () => {
     assertEquals(await fetchblocks.run([{ type: "jmespath", value: "a" }], {

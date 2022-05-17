@@ -1,4 +1,4 @@
-import { CONFIG, Liquid, DOMParser, builtinsString, nanoid } from "./deps.js";
+import { CONFIG, Liquid, DOMParser, builtinsString, nanoid, quickjs } from "./deps.js";
 
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER =
@@ -14,7 +14,42 @@ if (typeof CustomEvent == "undefined") {
   };
 }
 
+
+export async function qjs() {
+  const { getQuickJS } = quickjs;
+  const QuickJS = await getQuickJS()
+  const vm = QuickJS.newContext()
+
+  const logHandle = vm.newFunction("log", (...args) => {
+    const nativeArgs = args.map(vm.dump)
+    console.log("QuickJS:", ...nativeArgs)
+  })
+  // Partially implement `console` object
+  const consoleHandle = vm.newObject()
+  vm.setProp(consoleHandle, "log", logHandle)
+  vm.setProp(vm.global, "console", consoleHandle)
+  consoleHandle.dispose()
+  logHandle.dispose()
+  
+  const world = vm.newString("world")
+  vm.setProp(vm.global, "NAME", world)
+  world.dispose()
+
+  const result = vm.evalCode(`console.log("From interpreter", this); "Hello " + NAME + "!"`)
+  if (result.error) {
+    console.log("Execution failed:", vm.dump(result.error))
+    result.error.dispose()
+  } else {
+    console.log("Success:", vm.dump(result.value))
+    result.value.dispose()
+  }
+
+  vm.dispose()
+}
+
+
 export function jsEval(str, input, options) {
+
   // The intent is for this to run in a sandbox, but for now eval it:
   let fn = new Function("input", "options", builtinsString + str);
 

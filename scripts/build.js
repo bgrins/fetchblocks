@@ -31,10 +31,6 @@ await build({
       name: "liquidjs",
       version: "^9.37.0",
     },
-    "https://deno.land/x/deno_dom/deno-dom-wasm.ts": {
-      name: "jsdom",
-      version: "^19.0.0",
-    },
   },
   package: {
     // package.json properties

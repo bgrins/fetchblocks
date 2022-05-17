@@ -4,7 +4,7 @@ import {
   assert,
 } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
-import { fetchblock, fetchblocks, jsEval } from "./mod.js";
+import { fetchblock, fetchblocks, jsEval, qjs } from "./mod.js";
 import { isDeno, isNode } from "https://deno.land/x/which_runtime/mod.ts";
 
 // Building for node and web:
@@ -47,6 +47,11 @@ import { fetchblocks } from "@bgrins/fetchblocks"
 fetchblocks.env.set("NOTION_TOKEN", {
   value: fetchblocks.env.get("NOTION_TOKEN"),
   allowedOrigins: ["https://api.notion.com"],
+});
+Deno.test("fetchblocks - jseval", async () => {
+  // console.log(quickjs);
+  await qjs();
+
 });
 
 Deno.test("fetchblocks - builtins", async () => {

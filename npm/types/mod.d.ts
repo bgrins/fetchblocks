@@ -1,3 +1,4 @@
+export function qjs(): Promise<void>;
 export function jsEval(str: any, input: any, options: any): any;
 export class fetchblock extends EventTarget {
     constructor(steps: any, options?: {});

@@ -23,7 +23,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchblocks = exports.fetchblock = exports.jsEval = void 0;
+exports.fetchblocks = exports.fetchblock = exports.jsEval = exports.qjs = void 0;
+require("./_dnt.polyfills.js");
 const dntShim = __importStar(require("./_dnt.shims.js"));
 const deps_js_1 = require("./deps.js");
 const LIQUID_ENGINE = new deps_js_1.Liquid();
@@ -37,6 +38,35 @@ if (typeof CustomEvent == "undefined") {
         }
     };
 }
+async function qjs() {
+    const { getQuickJS } = deps_js_1.quickjs;
+    const QuickJS = await getQuickJS();
+    const vm = QuickJS.newContext();
+    const logHandle = vm.newFunction("log", (...args) => {
+        const nativeArgs = args.map(vm.dump);
+        console.log("QuickJS:", ...nativeArgs);
+    });
+    // Partially implement `console` object
+    const consoleHandle = vm.newObject();
+    vm.setProp(consoleHandle, "log", logHandle);
+    vm.setProp(vm.global, "console", consoleHandle);
+    consoleHandle.dispose();
+    logHandle.dispose();
+    const world = vm.newString("world");
+    vm.setProp(vm.global, "NAME", world);
+    world.dispose();
+    const result = vm.evalCode(`console.log("From interpreter", this); "Hello " + NAME + "!"`);
+    if (result.error) {
+        console.log("Execution failed:", vm.dump(result.error));
+        result.error.dispose();
+    }
+    else {
+        console.log("Success:", vm.dump(result.value));
+        result.value.dispose();
+    }
+    vm.dispose();
+}
+exports.qjs = qjs;
 function jsEval(str, input, options) {
     // The intent is for this to run in a sandbox, but for now eval it:
     let fn = new Function("input", "options", deps_js_1.builtinsString + str);
@@ -146,10 +176,10 @@ blockLoaders.set("json", {
                 // Todo: how to handle debugger case where there's no URL?
                 // This is prob similar to the potential optimization for local links
                 // on remote files.
-                ret[0].block = new URL(ret[0].block, base).toString();
+                ret[0].block = decodeURI(new URL(ret[0].block, base).toString());
             }
             else if (ret[0].resource) {
-                ret[0].resource = new URL(ret[0].resource, base).toString();
+                ret[0].resource = decodeURI(new URL(ret[0].resource, base).toString());
             }
         }
         return ret;
@@ -223,14 +253,15 @@ blockLoaders.set("html", {
         let initialBlock = gatherAttributes(htmlBlock);
         if (base) {
             if (initialBlock.resource) {
-                initialBlock.resource = new URL(initialBlock.resource, base).toString();
+                // TODO: there must be a better way to handle this but for now
+                // decode the URI to avoid URL encoding liquid templates. For example:
+                // "resource": "example.com/{{ dataset.foo }}" shouldn't become
+                // "resource": "example.com/{{%20dataset.foo%20}}" because liquid will complain at
+                // ParseError: unexpected token at "%20dataset.pa..."
+                initialBlock.resource = decodeURI(new URL(initialBlock.resource, base).toString());
             }
             if (initialBlock.block) {
-                // TODO: do some pre-flattening here once we figure out how to represent this in
-                // the native format (i.e. nested). This would be an optimization to avoid reloading
-                // the same html file again.
-                // Could also look into caching the source per-block.
-                initialBlock.block = new URL(initialBlock.block, base).toString();
+                initialBlock.block = decodeURI(new URL(initialBlock.block, base).toString());
             }
         }
         // TODO: Examples that i.e. put headers in child elements
