@@ -1,6 +1,8 @@
 import { CONFIG, Liquid, DOMParser, builtinsString, nanoid } from "./deps.js";
 
 const LIQUID_ENGINE = new Liquid();
+const IS_WORKER =
+  typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
 
 if (typeof CustomEvent == "undefined") {
   // node:
@@ -411,6 +413,11 @@ class fetchblock extends EventTarget {
         console.log(`Step #${e.detail.stepNum} complete`, e.detail.step);
       }
     });
+    this.addEventListener("RunStarting", (e) => {
+      if (e.detail?.options?.verbose) {
+        console.log(`Run complete`, e.detail.value);
+      }
+    });
     this.addEventListener("RunComplete", (e) => {
       if (e.detail?.options?.verbose) {
         console.log(`Run complete`, e.detail.value);
@@ -503,17 +510,21 @@ class fetchblock extends EventTarget {
   // Run the whole block from start to finish
   async run(options = {}) {
     let { plan, step } = await this.plan(options);
+    this.dispatchEvent(
+      new CustomEvent("RunStarting", {
+        detail: { fbid: this.id, plan, options },
+      })
+    );
     while (plan.currentStep < plan.length) {
       await step();
     }
 
     let value = plan[plan.length - 1].stepValue;
-    // TODO: is this useful?
-    // this.dispatchEvent(
-    //   new CustomEvent("RunComplete", {
-    //     detail: { fbid: this.id, value, plan, options },
-    //   })
-    // );
+    this.dispatchEvent(
+      new CustomEvent("RunComplete", {
+        detail: { fbid: this.id, value, plan, options },
+      })
+    );
     return value;
   }
 
@@ -641,6 +652,9 @@ class fetchblock extends EventTarget {
           },
         })
       );
+      if (options.runInWorker && !IS_WORKER) {
+        // TODO: create a worker pool with import.meta.url and call fetchblocks.run with prepoluated data
+      }
       if (plan.currentStep == 0) {
         if (options.stubResponse) {
           stepValue = options.stubResponse;
@@ -680,6 +694,70 @@ class fetchblock extends EventTarget {
       step,
     };
   }
+}
+
+if (IS_WORKER) {
+  const HEALTHCHECK_INTERVAL = 100;
+  self.onmessage = async function (e) {
+    console.log(e, e.data);
+
+    // TODO: Run single step
+
+    if (e.data.type == "fetchblocks.run") {
+      try {
+        let block = new fetchblock(e.data.blocks);
+        let healthcheck = null;
+        block.addEventListener("PlanReady", (e) => {
+          console.log(e);
+          self.postMessage({
+            type: e.type,
+            detail: e.detail,
+          });
+        });
+        block.addEventListener("StepStarting", (e) => {
+          self.postMessage({
+            type: e.type,
+            detail: e.detail,
+          });
+        });
+        block.addEventListener("StepComplete", (e) => {
+          self.postMessage({
+            type: e.type,
+            detail: e.detail,
+          });
+        });
+        block.addEventListener("RunComplete", (e) => {
+          clearInterval(healthcheck);
+          self.postMessage({
+            type: e.type,
+            detail: e.detail,
+          });
+        });
+        block.addEventListener("RunStarting", (e) => {
+          healthcheck = setInterval(() => {
+            self.postMessage({
+              type: "healthcheck",
+              detail: performance.now(),
+            });
+          }, HEALTHCHECK_INTERVAL);
+
+          self.postMessage({
+            type: e.type,
+            detail: e.detail,
+          });
+        });
+
+        await block.run(e.data.options);
+      } catch (e) {
+        self.postMessage({
+          type: "Error",
+          detail: {
+            e: e.toString(),
+          },
+        });
+      }
+    }
+  };
 }
 
 export { fetchblock, fetchblocks };

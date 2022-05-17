@@ -37,6 +37,12 @@ self.onmessage = async function (e) {
           detail: e.detail,
         });
       });
+      block.addEventListener("RunStarting", (e) => {
+        self.postMessage({
+          type: e.type,
+          detail: e.detail,
+        });
+      });
 
       let value = await block.run(e.data.options);
       self.postMessage({

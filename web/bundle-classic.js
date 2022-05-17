@@ -5423,6 +5423,7 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         , "")
     ;
     const LIQUID_ENGINE = new Liquid();
+    const IS_WORKER = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
     if (typeof CustomEvent == "undefined") {
         global.CustomEvent = class CustomEvent extends Event {
             constructor(message, data){
@@ -5731,6 +5732,11 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                     console.log(`Step #${e.detail.stepNum} complete`, e.detail.step);
                 }
             });
+            this.addEventListener("RunStarting", (e)=>{
+                if (e.detail?.options?.verbose) {
+                    console.log(`Run complete`, e.detail.value);
+                }
+            });
             this.addEventListener("RunComplete", (e)=>{
                 if (e.detail?.options?.verbose) {
                     console.log(`Run complete`, e.detail.value);
@@ -5798,10 +5804,25 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         }
         async run(options = {}) {
             let { plan , step  } = await this.plan(options);
+            this.dispatchEvent(new CustomEvent("RunStarting", {
+                detail: {
+                    fbid: this.id,
+                    plan,
+                    options
+                }
+            }));
             while(plan.currentStep < plan.length){
                 await step();
             }
             let value = plan[plan.length - 1].stepValue;
+            this.dispatchEvent(new CustomEvent("RunComplete", {
+                detail: {
+                    fbid: this.id,
+                    value,
+                    plan,
+                    options
+                }
+            }));
             return value;
         }
         liquify(plan, dataset) {
@@ -5887,6 +5908,7 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                         options
                     }
                 }));
+                if (options.runInWorker && !IS_WORKER) {}
                 if (plan.currentStep == 0) {
                     if (options.stubResponse) {
                         stepValue = options.stubResponse;
@@ -5920,6 +5942,64 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                 step
             };
         }
+    }
+    if (IS_WORKER) {
+        const HEALTHCHECK_INTERVAL = 100;
+        self.onmessage = async function(e1) {
+            console.log(e1, e1.data);
+            if (e1.data.type == "fetchblocks.run") {
+                try {
+                    let block5 = new fetchblock(e1.data.blocks);
+                    let healthcheck = null;
+                    block5.addEventListener("PlanReady", (e)=>{
+                        console.log(e);
+                        self.postMessage({
+                            type: e.type,
+                            detail: e.detail
+                        });
+                    });
+                    block5.addEventListener("StepStarting", (e)=>{
+                        self.postMessage({
+                            type: e.type,
+                            detail: e.detail
+                        });
+                    });
+                    block5.addEventListener("StepComplete", (e)=>{
+                        self.postMessage({
+                            type: e.type,
+                            detail: e.detail
+                        });
+                    });
+                    block5.addEventListener("RunComplete", (e)=>{
+                        clearInterval(healthcheck);
+                        self.postMessage({
+                            type: e.type,
+                            detail: e.detail
+                        });
+                    });
+                    block5.addEventListener("RunStarting", (e)=>{
+                        healthcheck = setInterval(()=>{
+                            self.postMessage({
+                                type: "healthcheck",
+                                detail: performance.now()
+                            });
+                        }, HEALTHCHECK_INTERVAL);
+                        self.postMessage({
+                            type: e.type,
+                            detail: e.detail
+                        });
+                    });
+                    await block5.run(e1.data.options);
+                } catch (e) {
+                    self.postMessage({
+                        type: "Error",
+                        detail: {
+                            e: e.toString()
+                        }
+                    });
+                }
+            }
+        };
     }
     return {
         fetchblock: fetchblock,

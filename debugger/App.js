@@ -210,6 +210,21 @@ function Actions() {
   );
 }
 
+function runBlock(blocks, options) {
+  // var worker = new Worker(new URL("../web/bundle-module.js", import.meta.url), {
+  //   type: "module",
+  // });
+  // worker.onmessage = function (e) {
+  //   console.log(e);
+  // };
+
+  // worker.postMessage({
+  //   type: "fetchblocks.run",
+  //   blocks,
+  //   options,
+  // });
+}
+
 async function runActiveBlock(activeBlockId) {
   console.log("Active block id", activeBlockId);
   let id =
@@ -261,6 +276,9 @@ async function runActiveBlock(activeBlockId) {
       );
     });
 
+    runBlock(block.steps, {
+      dataset,
+    });
     await block.run({
       dataset,
     });
@@ -308,9 +326,9 @@ function RunAction(props) {
   );
 }
 export function App() {
-
   // Remember / restore the last file
-  let initialFilename = window.localStorage.getItem("lastFile") || EXAMPLES[0].name;
+  let initialFilename =
+    window.localStorage.getItem("lastFile") || EXAMPLES[0].name;
   let initialFileIndex = 0;
   for (let [index, file] of EXAMPLES.entries()) {
     if (file.name == initialFilename) {
@@ -327,7 +345,6 @@ export function App() {
   // let [runVisible, setRunVisible] = React.useState(true);
   let [activeFile, setActiveFile] = React.useState(initialFileIndex);
   React.useEffect(() => {
-
     window.editor = new CodeMirror(document.querySelector("#blockEditor"), {
       lineNumbers: true,
       lineWrapping: true,
