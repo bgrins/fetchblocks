@@ -76,3 +76,24 @@ Deno.writeTextFileSync(
     verbose: true,
   })
 );
+
+let aw =  await fetchblocks.loadFromText(`
+[
+  { "resource": "https://api.github.com/users/{{dataset.user}}/subscriptions?per_page={{ dataset.per_page | default: 5 }}" },
+  { "type": "jmespath", "value": "[].{id: id, node_id: node_id, name: name, full_name: full_name, private: private, owner: owner.login, html_url: html_url, description: description, created_at: created_at, updated_at: updated_at, pushed_at: pushed_at, homepage: homepage, size: size, stargazers_count: stargazers_count, watchers_count: watchers_count, language: language, has_wiki: has_wiki, has_pages: has_pages, forks_count: forks_count, archived: archived, disabled: disabled, open_issues_count: open_issues_count, topics: topics, forks: forks, open_issues: open_issues, watchers: watchers }" },
+    {
+      "type": "json_to_csv"
+    }
+]
+`)
+Deno.writeTextFileSync(
+  "./testdata/aw.csv",
+  await aw.run({
+    verbose: true,
+    dataset: {
+      user: "bgrins",
+      per_page: 6
+    }
+  })
+);
+

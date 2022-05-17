@@ -38,6 +38,19 @@ const EXAMPLES = [
 ]`,
   },
   {
+    name: "Watched Repos",
+    mode: "application/json",
+    content: `[
+    { "resource": "https://api.github.com/users/{{dataset.user}}/subscriptions?per_page={{ dataset.per_page | default: 5 }}" },
+    { "type": "jmespath", "value": "[].{id: id, node_id: node_id, name: name, full_name: full_name, private: private, owner: owner.login, html_url: html_url, description: description, created_at: created_at, updated_at: updated_at, pushed_at: pushed_at, homepage: homepage, size: size, stargazers_count: stargazers_count, watchers_count: watchers_count, language: language, has_wiki: has_wiki, has_pages: has_pages, forks_count: forks_count, archived: archived, disabled: disabled, open_issues_count: open_issues_count, topics: topics, forks: forks, open_issues: open_issues, watchers: watchers }" },
+    { "type": "json_to_csv" }
+  ]`,
+    defaultDataset: {
+      per_page: 6,
+      user: "bgrins",
+    },
+  },
+  {
     name: "HTML block",
     mode: "text/html",
     content: `<fetch-block resource="https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF">
@@ -114,8 +127,23 @@ function RunResults(props) {
           <span>Waiting to complete</span>
         ) : (
           <>
-            <span>Value:</span>
-            <pre>{JSON.stringify(value.stepValue, null, 2)}</pre>
+            <span>
+              Value:{" "}
+              <Button
+                onPress={(e) =>
+                  navigator.clipboard.writeText(
+                    e.target.parentNode.nextElementSibling.textContent
+                  )
+                }
+              >
+                Copy to clipboard
+              </Button>
+            </span>
+            <pre>
+              {typeof value.stepValue == "string"
+                ? value.stepValue
+                : JSON.stringify(value.stepValue, null, 2)}
+            </pre>
           </>
         );
 
@@ -217,7 +245,6 @@ function runBlock(blocks, options) {
   // worker.onmessage = function (e) {
   //   console.log(e);
   // };
-
   // worker.postMessage({
   //   type: "fetchblocks.run",
   //   blocks,
