@@ -113,6 +113,14 @@ Deno.test("fetchblocks - builtins", async () => {
   );
 });
 
+Deno.test("fetchblocks - transform only", async () => {
+  assertEquals(
+    await fetchblocks.run([{ type: "jmespath", value: "a" }], {
+      stubResponse: { a: "val" },
+    }),
+    "val"
+  );
+});
 // TODO: replace this with something else
 Deno.test("fetchblocks - jmespath", async () => {
   assertEquals(

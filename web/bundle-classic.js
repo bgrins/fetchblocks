@@ -5710,9 +5710,6 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
             }
             this.remoteBlocks = new Set();
             this.steps = steps;
-            if (!this.type) {
-                throw new Error("The first step must be either `fetch` or `block`");
-            }
             this.addEventListener("PlanReady", (e)=>{
                 if (e.detail?.options?.verbose) {
                     console.log(`Plan is ready - ${e.detail.plan.length} steps:`);
@@ -5742,20 +5739,6 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                     console.log(`Run complete`, e.detail.value);
                 }
             });
-        }
-        get request() {
-            return this.steps[0];
-        }
-        get transforms() {
-            return this.steps.slice(1);
-        }
-        get type() {
-            if (this.request.resource || this.request.stubResponse) {
-                return "fetch";
-            }
-            if (this.request.block) {
-                return "block";
-            }
         }
         stringify(type) {}
         async fetchData(fetchOptions = {}, options = {}) {
@@ -5841,28 +5824,29 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         }
         async flatten() {
             let flattened = [];
-            if (this.type == "block") {
-                this.parent = this.request.block;
-                if (typeof this.parent == "string" || this.parent instanceof URL) {
-                    let key = this.parent.toString().toLowerCase();
-                    if (this.remoteBlocks.has(key)) {
-                        throw new Error(`Duplicate block detected: ${key}`);
+            for (let step of this.steps){
+                if (step.block) {
+                    let parent = step.block;
+                    if (typeof parent == "string" || parent instanceof URL) {
+                        let key = parent.toString().toLowerCase();
+                        if (this.remoteBlocks.has(key)) {
+                            throw new Error(`Duplicate block detected: ${key}`);
+                        }
+                        this.remoteBlocks.add(key);
+                        if (key.startsWith("#") && this.sourceText) {
+                            parent = await fetchblocks.loadFromText(this.sourceText, this.loader, {
+                                id: key.substr(1)
+                            });
+                        } else {
+                            parent = await fetchblocks.loadFromURI(parent);
+                        }
+                        parent.remoteBlocks.add(...this.remoteBlocks.keys());
                     }
-                    this.remoteBlocks.add(key);
-                    if (key.startsWith("#") && this.sourceText) {
-                        this.parent = await fetchblocks.loadFromText(this.sourceText, this.loader, {
-                            id: key.substr(1)
-                        });
-                    } else {
-                        this.parent = await fetchblocks.loadFromURI(this.parent);
-                    }
-                    this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
+                    let parentFlattened = await parent.flatten();
+                    flattened.push(...parentFlattened);
+                } else {
+                    flattened.push(step);
                 }
-                let parentFlattened = await this.parent.flatten();
-                flattened.push(...parentFlattened);
-                flattened.push(...this.transforms);
-            } else {
-                flattened.push(this.request, ...this.transforms);
             }
             return flattened;
         }
@@ -5909,23 +5893,33 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
                     }
                 }));
                 if (options.runInWorker && !IS_WORKER) {}
+                if (plan.currentStep == 0 && !thisStep.resource && !options.stubResponse) {
+                    throw new Error("Invalid run - no data source");
+                }
+                let incomingValue;
                 if (plan.currentStep == 0) {
                     if (options.stubResponse) {
-                        stepValue = options.stubResponse;
+                        if (thisStep.resource) {
+                            stepValue = options.stubResponse;
+                        } else {
+                            incomingValue = options.stubResponse;
+                        }
                     } else {
                         stepValue = await this.fetchData(thisStep, options);
                     }
-                    thisStep.stepValue = stepValue;
-                } else {
-                    let lastStep = plan[plan.currentStep - 1];
-                    let incomingValue = lastStep.stepValue;
+                }
+                if (thisStep.type) {
+                    if (!incomingValue) {
+                        let lastStep = plan[plan.currentStep - 1];
+                        incomingValue = lastStep.stepValue;
+                    }
                     let transform = thisStep;
                     if (!builtins[transform.type]) {
                         throw new Error(`Unrecognized builtin: ${transform.type}`);
                     }
                     stepValue = await builtins[transform.type].call(null, incomingValue, transform);
-                    thisStep.stepValue = stepValue;
                 }
+                thisStep.stepValue = stepValue;
                 plan.currentStep = plan.currentStep + 1;
                 this.dispatchEvent(new CustomEvent("StepComplete", {
                     detail: {
@@ -5947,7 +5941,7 @@ const root = typeof self !== 'undefined' ? self : this; root.fetchblocks = (func
         const HEALTHCHECK_INTERVAL = 100;
         self.onmessage = async function(e1) {
             console.log(e1, e1.data);
-            if (e1.data.type == "fetchblocks.run") {
+            if (e1.data.type == "fetchblocks.runstep") {
                 try {
                     let block5 = new fetchblock(e1.data.blocks);
                     let healthcheck = null;

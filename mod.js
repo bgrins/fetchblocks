@@ -393,10 +393,6 @@ class fetchblock extends EventTarget {
     this.remoteBlocks = new Set();
     this.steps = steps;
 
-    if (!this.type) {
-      throw new Error("The first step must be either `fetch` or `block`");
-    }
-
     this.addEventListener("PlanReady", (e) => {
       if (e.detail?.options?.verbose) {
         console.log(`Plan is ready - ${e.detail.plan.length} steps:`);
@@ -423,22 +419,6 @@ class fetchblock extends EventTarget {
         console.log(`Run complete`, e.detail.value);
       }
     });
-  }
-
-  get request() {
-    return this.steps[0];
-  }
-  get transforms() {
-    return this.steps.slice(1);
-  }
-
-  get type() {
-    if (this.request.resource || this.request.stubResponse) {
-      return "fetch";
-    }
-    if (this.request.block) {
-      return "block";
-    }
   }
 
   stringify(type) {}
@@ -547,44 +527,45 @@ class fetchblock extends EventTarget {
   // Traverse all parents and flatten into a single block
   async flatten() {
     let flattened = [];
-    if (this.type == "block") {
-      // Todo: we should probably expect to accept just steps here
-      // i.e. with actual cross link in declarative we need to fetch and parse anyway
-      this.parent = this.request.block;
+    for (let step of this.steps) {
+      if (step.block) {
+        // Todo: we should probably expect to accept just steps here
+        // i.e. with actual cross link in declarative we need to fetch and parse anyway
+        let parent = step.block;
 
-      if (typeof this.parent == "string" || this.parent instanceof URL) {
-        let key = this.parent.toString().toLowerCase();
+        if (typeof parent == "string" || parent instanceof URL) {
+          let key = parent.toString().toLowerCase();
 
-        // Prevent cycles
-        if (this.remoteBlocks.has(key)) {
-          throw new Error(`Duplicate block detected: ${key}`);
+          // Prevent cycles
+          if (this.remoteBlocks.has(key)) {
+            throw new Error(`Duplicate block detected: ${key}`);
+          }
+
+          this.remoteBlocks.add(key);
+          if (key.startsWith("#") && this.sourceText) {
+            // Optimization - if we have a local link within the same file then reuse
+            // the same text rather than hitting the network again.
+            parent = await fetchblocks.loadFromText(
+              this.sourceText,
+              this.loader,
+              {
+                id: key.substr(1),
+              }
+            );
+          } else {
+            parent = await fetchblocks.loadFromURI(parent);
+          }
+
+          parent.remoteBlocks.add(...this.remoteBlocks.keys());
         }
 
-        this.remoteBlocks.add(key);
-        if (key.startsWith("#") && this.sourceText) {
-          // Optimization - if we have a local link within the same file then reuse
-          // the same text rather than hitting the network again.
-          this.parent = await fetchblocks.loadFromText(
-            this.sourceText,
-            this.loader,
-            {
-              id: key.substr(1),
-            }
-          );
-        } else {
-          this.parent = await fetchblocks.loadFromURI(this.parent);
-        }
+        let parentFlattened = await parent.flatten();
 
-        this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
+        // Todo: Handle empty or other errors
+        flattened.push(...parentFlattened);
+      } else {
+        flattened.push(step);
       }
-
-      let parentFlattened = await this.parent.flatten();
-
-      // Todo: Handle empty or other errors
-      flattened.push(...parentFlattened);
-      flattened.push(...this.transforms);
-    } else {
-      flattened.push(this.request, ...this.transforms);
     }
     return flattened;
   }
@@ -655,16 +636,33 @@ class fetchblock extends EventTarget {
       if (options.runInWorker && !IS_WORKER) {
         // TODO: create a worker pool with import.meta.url and call fetchblocks.run with prepoluated data
       }
+
+      // Todo: clean this mess up
+      if (
+        plan.currentStep == 0 &&
+        !thisStep.resource &&
+        !options.stubResponse
+      ) {
+        throw new Error("Invalid run - no data source");
+      }
+      let incomingValue;
       if (plan.currentStep == 0) {
         if (options.stubResponse) {
-          stepValue = options.stubResponse;
+          if (thisStep.resource) {
+            stepValue = options.stubResponse;
+          } else {
+            incomingValue = options.stubResponse;
+          }
         } else {
           stepValue = await this.fetchData(thisStep, options);
         }
-        thisStep.stepValue = stepValue;
-      } else {
-        let lastStep = plan[plan.currentStep - 1];
-        let incomingValue = lastStep.stepValue;
+      }
+
+      if (thisStep.type) {
+        if (!incomingValue) {
+          let lastStep = plan[plan.currentStep - 1];
+          incomingValue = lastStep.stepValue;
+        }
         let transform = thisStep;
         if (!builtins[transform.type]) {
           throw new Error(`Unrecognized builtin: ${transform.type}`);
@@ -674,8 +672,8 @@ class fetchblock extends EventTarget {
           incomingValue,
           transform
         );
-        thisStep.stepValue = stepValue;
       }
+      thisStep.stepValue = stepValue;
       plan.currentStep = plan.currentStep + 1;
       this.dispatchEvent(
         new CustomEvent("StepComplete", {
@@ -703,7 +701,7 @@ if (IS_WORKER) {
 
     // TODO: Run single step
 
-    if (e.data.type == "fetchblocks.run") {
+    if (e.data.type == "fetchblocks.runstep") {
       try {
         let block = new fetchblock(e.data.blocks);
         let healthcheck = null;
