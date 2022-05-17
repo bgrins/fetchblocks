@@ -5422,6 +5422,7 @@ let nanoid = (t1 = 21)=>crypto.getRandomValues(new Uint8Array(t1)).reduce((t, e)
     , "")
 ;
 const LIQUID_ENGINE = new Liquid();
+const IS_WORKER = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
 if (typeof CustomEvent == "undefined") {
     global.CustomEvent = class CustomEvent extends Event {
         constructor(message, data){
@@ -5478,10 +5479,45 @@ blockLoaders.set("json", {
             return true;
         } catch (e) {}
     },
-    async getBlock (content) {
+    getLikelyBlocks (content) {
+        try {
+            let obj = JSON.parse(content);
+            if (Array.isArray(obj)) {
+                return [
+                    "default"
+                ];
+            }
+            if (typeof obj == "object") {
+                return Object.keys(obj).filter((key)=>{
+                    return Array.isArray(obj[key]);
+                });
+            }
+            return true;
+        } catch (e) {}
+    },
+    async getBlock (content, options) {
         let ret = JSON.parse(content);
+        let base;
+        let id;
+        if (options?.base) {
+            base = new URL(options?.base);
+            id = base && base.hash.substr(1);
+        }
+        if (options?.id) {
+            id = options.id;
+        }
+        if (id && ret.hasOwnProperty(id)) {
+            ret = ret[id];
+        }
         if (!Array.isArray(ret)) {
             throw new Error(`JSON must be an array for now: ${content}`);
+        }
+        if (base) {
+            if (ret[0].block) {
+                ret[0].block = new URL(ret[0].block, base).toString();
+            } else if (ret[0].resource) {
+                ret[0].resource = new URL(ret[0].resource, base).toString();
+            }
         }
         return ret;
     },
@@ -5491,21 +5527,42 @@ blockLoaders.set("json", {
 });
 blockLoaders.set("js", {
     shouldHandle (content) {},
-    async getBlock () {
+    getLikelyBlocks (text) {
         return;
+    },
+    async getBlock () {
+        throw new Error("JS Loader unimplemented");
     }
 });
 blockLoaders.set("html", {
     shouldHandle (content) {
         return content.indexOf("<fetch-block") != -1;
     },
+    getLikelyBlocks (content) {
+        let dom = new DOMParser().parseFromString(content, "text/html");
+        let allBlocks = dom.querySelectorAll("fetch-block");
+        if (allBlocks.length == 1) {
+            return [
+                "default"
+            ];
+        }
+        return [
+            ...allBlocks
+        ].filter((block2)=>!!block2.id
+        ).map((block3)=>block3.id
+        );
+    },
     async getBlock (content, options) {
         let dom = new DOMParser().parseFromString(content, "text/html");
         let base;
+        let id;
         if (options?.base) {
             base = new URL(options?.base);
+            id = base && base.hash.substr(1);
         }
-        let id = base && base.hash.substr(1);
+        if (options?.id) {
+            id = options.id;
+        }
         let htmlBlock;
         if (id) {
             htmlBlock = dom.getElementById(id);
@@ -5556,14 +5613,30 @@ const fetchblocks = (()=>{
     return {
         blockLoaders,
         env: new Map(Object.entries(CONFIG)),
-        async loadFromText (text, loader, options) {
-            if (!loader) {
-                for (let [key, value] of blockLoaders.entries()){
-                    if (value.shouldHandle(text)) {
-                        loader = key;
-                        break;
-                    }
+        getLoaderForText (text) {
+            let loader;
+            for (let [key, value] of blockLoaders.entries()){
+                if (value.shouldHandle(text)) {
+                    loader = key;
+                    break;
                 }
+            }
+            return loader;
+        },
+        getLikelyBlocksFromText (text, loader) {
+            if (!loader) {
+                loader = this.getLoaderForText(text);
+            }
+            if (!blockLoaders.has(loader)) {
+                return [];
+            }
+            let blockLoader = blockLoaders.get(loader);
+            let obj = blockLoader.getLikelyBlocks(text);
+            return obj || [];
+        },
+        async loadFromText (text, loader, options = {}) {
+            if (!loader) {
+                loader = this.getLoaderForText(text);
             }
             if (!blockLoaders.has(loader)) {
                 throw new Error(`Couldn't find a valid fetchblock`);
@@ -5571,9 +5644,13 @@ const fetchblocks = (()=>{
             let blockLoader = blockLoaders.get(loader);
             let obj = await blockLoader.getBlock(text, options);
             try {
-                return new fetchblock(obj);
-            } catch (e) {}
-            throw new Error(`Loader ${loader} returned an empty object`);
+                return new fetchblock(obj, {
+                    sourceText: text,
+                    loader: loader
+                });
+            } catch (e) {
+                throw new Error(`Loader ${loader} returned an empty object. Error: ${e}`);
+            }
         },
         async loadFromURI (uri, loader) {
             if (typeof uri == "string") {
@@ -5596,11 +5673,11 @@ const fetchblocks = (()=>{
                 throw new Error(`Fetchblock couldn't be loaded from ${uri.toString()} - status ${response.status}`);
             }
             let text = await response.text();
-            let block2 = await this.loadFromText(text, loader, {
+            let block4 = await this.loadFromText(text, loader, {
                 base: uri,
                 response
             });
-            return block2;
+            return block4;
         },
         run (steps, dataset, options = {}) {
             if (!Array.isArray(steps)) {
@@ -5612,17 +5689,26 @@ const fetchblocks = (()=>{
     };
 })();
 class fetchblock extends EventTarget {
-    constructor(args){
+    constructor(steps, options = {}){
         super();
-        if (!Array.isArray(args) || args.length === 0) {
+        if (!Array.isArray(steps) || steps.length === 0) {
             throw new Error("Must provide an array with steps to create a fetchblock");
         }
         this.id = nanoid();
-        this.remoteBlocks = new Set();
-        this.steps = args;
-        if (!this.type) {
-            throw new Error("The first step must be either `fetch` or `block`");
+        if (options.sourceText) {
+            Object.defineProperty(this, "sourceText", {
+                value: options.sourceText,
+                writable: false
+            });
         }
+        if (options.loader) {
+            Object.defineProperty(this, "loader", {
+                value: options.loader,
+                writable: false
+            });
+        }
+        this.remoteBlocks = new Set();
+        this.steps = steps;
         this.addEventListener("PlanReady", (e)=>{
             if (e.detail?.options?.verbose) {
                 console.log(`Plan is ready - ${e.detail.plan.length} steps:`);
@@ -5642,25 +5728,16 @@ class fetchblock extends EventTarget {
                 console.log(`Step #${e.detail.stepNum} complete`, e.detail.step);
             }
         });
+        this.addEventListener("RunStarting", (e)=>{
+            if (e.detail?.options?.verbose) {
+                console.log(`Run complete`, e.detail.value);
+            }
+        });
         this.addEventListener("RunComplete", (e)=>{
             if (e.detail?.options?.verbose) {
                 console.log(`Run complete`, e.detail.value);
             }
         });
-    }
-    get request() {
-        return this.steps[0];
-    }
-    get transforms() {
-        return this.steps.slice(1);
-    }
-    get type() {
-        if (this.request.resource || this.request.stubResponse) {
-            return "fetch";
-        }
-        if (this.request.block) {
-            return "block";
-        }
     }
     stringify(type) {}
     async fetchData(fetchOptions = {}, options = {}) {
@@ -5709,10 +5786,25 @@ class fetchblock extends EventTarget {
     }
     async run(options = {}) {
         let { plan , step  } = await this.plan(options);
+        this.dispatchEvent(new CustomEvent("RunStarting", {
+            detail: {
+                fbid: this.id,
+                plan,
+                options
+            }
+        }));
         while(plan.currentStep < plan.length){
             await step();
         }
         let value = plan[plan.length - 1].stepValue;
+        this.dispatchEvent(new CustomEvent("RunComplete", {
+            detail: {
+                fbid: this.id,
+                value,
+                plan,
+                options
+            }
+        }));
         return value;
     }
     liquify(plan, dataset) {
@@ -5731,22 +5823,29 @@ class fetchblock extends EventTarget {
     }
     async flatten() {
         let flattened = [];
-        if (this.type == "block") {
-            this.parent = this.request.block;
-            if (typeof this.parent == "string" || this.parent instanceof URL) {
-                let key = this.parent.toString().toLowerCase();
-                if (this.remoteBlocks.has(key)) {
-                    throw new Error(`Duplicate block detected: ${key}`);
+        for (let step of this.steps){
+            if (step.block) {
+                let parent = step.block;
+                if (typeof parent == "string" || parent instanceof URL) {
+                    let key = parent.toString().toLowerCase();
+                    if (this.remoteBlocks.has(key)) {
+                        throw new Error(`Duplicate block detected: ${key}`);
+                    }
+                    this.remoteBlocks.add(key);
+                    if (key.startsWith("#") && this.sourceText) {
+                        parent = await fetchblocks.loadFromText(this.sourceText, this.loader, {
+                            id: key.substr(1)
+                        });
+                    } else {
+                        parent = await fetchblocks.loadFromURI(parent);
+                    }
+                    parent.remoteBlocks.add(...this.remoteBlocks.keys());
                 }
-                this.remoteBlocks.add(key);
-                this.parent = await fetchblocks.loadFromURI(this.parent);
-                this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
+                let parentFlattened = await parent.flatten();
+                flattened.push(...parentFlattened);
+            } else {
+                flattened.push(step);
             }
-            let parentFlattened = await this.parent.flatten();
-            flattened.push(...parentFlattened);
-            flattened.push(...this.transforms);
-        } else {
-            flattened.push(this.request, ...this.transforms);
         }
         return flattened;
     }
@@ -5792,23 +5891,34 @@ class fetchblock extends EventTarget {
                     options
                 }
             }));
+            if (options.runInWorker && !IS_WORKER) {}
+            if (plan.currentStep == 0 && !thisStep.resource && !options.stubResponse) {
+                throw new Error("Invalid run - no data source");
+            }
+            let incomingValue;
             if (plan.currentStep == 0) {
                 if (options.stubResponse) {
-                    stepValue = options.stubResponse;
+                    if (thisStep.resource) {
+                        stepValue = options.stubResponse;
+                    } else {
+                        incomingValue = options.stubResponse;
+                    }
                 } else {
                     stepValue = await this.fetchData(thisStep, options);
                 }
-                thisStep.stepValue = stepValue;
-            } else {
-                let lastStep = plan[plan.currentStep - 1];
-                let incomingValue = lastStep.stepValue;
+            }
+            if (thisStep.type) {
+                if (!incomingValue) {
+                    let lastStep = plan[plan.currentStep - 1];
+                    incomingValue = lastStep.stepValue;
+                }
                 let transform = thisStep;
                 if (!builtins[transform.type]) {
                     throw new Error(`Unrecognized builtin: ${transform.type}`);
                 }
                 stepValue = await builtins[transform.type].call(null, incomingValue, transform);
-                thisStep.stepValue = stepValue;
             }
+            thisStep.stepValue = stepValue;
             plan.currentStep = plan.currentStep + 1;
             this.dispatchEvent(new CustomEvent("StepComplete", {
                 detail: {
@@ -5825,6 +5935,64 @@ class fetchblock extends EventTarget {
             step
         };
     }
+}
+if (IS_WORKER) {
+    const HEALTHCHECK_INTERVAL = 100;
+    self.onmessage = async function(e1) {
+        console.log(e1, e1.data);
+        if (e1.data.type == "fetchblocks.runstep") {
+            try {
+                let block5 = new fetchblock(e1.data.blocks);
+                let healthcheck = null;
+                block5.addEventListener("PlanReady", (e)=>{
+                    console.log(e);
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail
+                    });
+                });
+                block5.addEventListener("StepStarting", (e)=>{
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail
+                    });
+                });
+                block5.addEventListener("StepComplete", (e)=>{
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail
+                    });
+                });
+                block5.addEventListener("RunComplete", (e)=>{
+                    clearInterval(healthcheck);
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail
+                    });
+                });
+                block5.addEventListener("RunStarting", (e)=>{
+                    healthcheck = setInterval(()=>{
+                        self.postMessage({
+                            type: "healthcheck",
+                            detail: performance.now()
+                        });
+                    }, HEALTHCHECK_INTERVAL);
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail
+                    });
+                });
+                await block5.run(e1.data.options);
+            } catch (e) {
+                self.postMessage({
+                    type: "Error",
+                    detail: {
+                        e: e.toString()
+                    }
+                });
+            }
+        }
+    };
 }
 export { fetchblock as fetchblock, fetchblocks as fetchblocks };
 export { jsEval as jsEval };

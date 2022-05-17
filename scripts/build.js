@@ -19,6 +19,7 @@ await copySync("testdata", "npm/script/testdata");
 await build({
   entryPoints: ["./mod.js"],
   outDir: "./npm",
+  testPattern: "test.js",
   shims: {
     // see JS docs for overview and more options
     deno: true,

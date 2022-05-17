@@ -1,6 +1,7 @@
 import * as dntShim from "./_dnt.shims.js";
 import { CONFIG, Liquid, DOMParser, builtinsString, nanoid } from "./deps.js";
 const LIQUID_ENGINE = new Liquid();
+const IS_WORKER = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
 if (typeof CustomEvent == "undefined") {
     // node:
     global.CustomEvent = class CustomEvent extends Event {
@@ -79,10 +80,50 @@ blockLoaders.set("json", {
         }
         catch (e) { }
     },
-    async getBlock(content) {
+    getLikelyBlocks(content) {
+        try {
+            let obj = JSON.parse(content);
+            if (Array.isArray(obj)) {
+                return ["default"];
+            }
+            if (typeof obj == "object") {
+                return Object.keys(obj).filter((key) => {
+                    return Array.isArray(obj[key]);
+                });
+            }
+            return true;
+        }
+        catch (e) { }
+    },
+    async getBlock(content, options) {
         let ret = JSON.parse(content);
+        let base;
+        let id;
+        if (options?.base) {
+            base = new URL(options?.base);
+            id = base && base.hash.substr(1);
+        }
+        if (options?.id) {
+            id = options.id;
+        }
+        // Accept multiple blocks like so:
+        // { "one": [{ }],"two": [{ }] }
+        if (id && ret.hasOwnProperty(id)) {
+            ret = ret[id];
+        }
         if (!Array.isArray(ret)) {
             throw new Error(`JSON must be an array for now: ${content}`);
+        }
+        if (base) {
+            if (ret[0].block) {
+                // Todo: how to handle debugger case where there's no URL?
+                // This is prob similar to the potential optimization for local links
+                // on remote files.
+                ret[0].block = new URL(ret[0].block, base).toString();
+            }
+            else if (ret[0].resource) {
+                ret[0].resource = new URL(ret[0].resource, base).toString();
+            }
         }
         return ret;
     },
@@ -92,22 +133,39 @@ blockLoaders.set("json", {
 });
 blockLoaders.set("js", {
     shouldHandle(content) { },
+    getLikelyBlocks(text) {
+        return;
+    },
     async getBlock() {
         // Todo: Should this be an ESM?
-        return;
+        throw new Error("JS Loader unimplemented");
     },
 });
 blockLoaders.set("html", {
     shouldHandle(content) {
         return content.indexOf("<fetch-block") != -1;
     },
+    getLikelyBlocks(content) {
+        let dom = new DOMParser().parseFromString(content, "text/html");
+        let allBlocks = dom.querySelectorAll("fetch-block");
+        if (allBlocks.length == 1) {
+            return ["default"];
+        }
+        return [...allBlocks]
+            .filter((block) => !!block.id)
+            .map((block) => block.id);
+    },
     async getBlock(content, options) {
         let dom = new DOMParser().parseFromString(content, "text/html");
         let base;
+        let id;
         if (options?.base) {
             base = new URL(options?.base);
+            id = base && base.hash.substr(1);
         }
-        let id = base && base.hash.substr(1);
+        if (options?.id) {
+            id = options.id;
+        }
         let htmlBlock;
         if (id) {
             htmlBlock = dom.getElementById(id);
@@ -169,17 +227,33 @@ const fetchblocks = (() => {
         blockLoaders,
         // By default this will read from dotenv. If you want more you can set:
         env: new Map(Object.entries(CONFIG)),
+        getLoaderForText(text) {
+            let loader;
+            for (let [key, value] of blockLoaders.entries()) {
+                if (value.shouldHandle(text)) {
+                    loader = key;
+                    break;
+                }
+            }
+            return loader;
+        },
+        getLikelyBlocksFromText(text, loader) {
+            if (!loader) {
+                loader = this.getLoaderForText(text);
+            }
+            if (!blockLoaders.has(loader)) {
+                return [];
+            }
+            let blockLoader = blockLoaders.get(loader);
+            let obj = blockLoader.getLikelyBlocks(text);
+            return obj || [];
+        },
         // We'll attempt to detect the appropriate loader, else you can
         // pass them in (default values "js", "html", "json" or you can
         // make your own with `fetchblocks.loader.set("foo", async (input) => {}))`
-        async loadFromText(text, loader, options) {
+        async loadFromText(text, loader, options = {}) {
             if (!loader) {
-                for (let [key, value] of blockLoaders.entries()) {
-                    if (value.shouldHandle(text)) {
-                        loader = key;
-                        break;
-                    }
-                }
+                loader = this.getLoaderForText(text);
             }
             if (!blockLoaders.has(loader)) {
                 throw new Error(`Couldn't find a valid fetchblock`);
@@ -187,10 +261,14 @@ const fetchblocks = (() => {
             let blockLoader = blockLoaders.get(loader);
             let obj = await blockLoader.getBlock(text, options);
             try {
-                return new fetchblock(obj);
+                return new fetchblock(obj, {
+                    sourceText: text,
+                    loader: loader,
+                });
             }
-            catch (e) { }
-            throw new Error(`Loader ${loader} returned an empty object`);
+            catch (e) {
+                throw new Error(`Loader ${loader} returned an empty object. Error: ${e}`);
+            }
         },
         async loadFromURI(uri, loader) {
             if (typeof uri == "string") {
@@ -230,23 +308,32 @@ const fetchblocks = (() => {
     };
 })();
 class fetchblock extends EventTarget {
-    constructor(args) {
+    constructor(steps, options = {}) {
         // Todo: only accept an array
         super();
-        if (!Array.isArray(args) || args.length === 0) {
+        if (!Array.isArray(steps) || steps.length === 0) {
             throw new Error("Must provide an array with steps to create a fetchblock");
         }
         this.id = nanoid();
+        if (options.sourceText) {
+            Object.defineProperty(this, "sourceText", {
+                value: options.sourceText,
+                writable: false,
+            });
+        }
+        if (options.loader) {
+            Object.defineProperty(this, "loader", {
+                value: options.loader,
+                writable: false,
+            });
+        }
         // If we wanted to make sure the blocks are sane (no local functions etc)
         // if (args[0].block instanceof fetchblock) {
         //   args[0] = { block: args[0].block.steps };
         // }
         // args = JSON.parse(JSON.stringify(args));
         this.remoteBlocks = new Set();
-        this.steps = args;
-        if (!this.type) {
-            throw new Error("The first step must be either `fetch` or `block`");
-        }
+        this.steps = steps;
         this.addEventListener("PlanReady", (e) => {
             if (e.detail?.options?.verbose) {
                 console.log(`Plan is ready - ${e.detail.plan.length} steps:`);
@@ -263,25 +350,16 @@ class fetchblock extends EventTarget {
                 console.log(`Step #${e.detail.stepNum} complete`, e.detail.step);
             }
         });
+        this.addEventListener("RunStarting", (e) => {
+            if (e.detail?.options?.verbose) {
+                console.log(`Run complete`, e.detail.value);
+            }
+        });
         this.addEventListener("RunComplete", (e) => {
             if (e.detail?.options?.verbose) {
                 console.log(`Run complete`, e.detail.value);
             }
         });
-    }
-    get request() {
-        return this.steps[0];
-    }
-    get transforms() {
-        return this.steps.slice(1);
-    }
-    get type() {
-        if (this.request.resource || this.request.stubResponse) {
-            return "fetch";
-        }
-        if (this.request.block) {
-            return "block";
-        }
     }
     stringify(type) { }
     async fetchData(fetchOptions = {}, options = {}) {
@@ -334,16 +412,16 @@ class fetchblock extends EventTarget {
     // Run the whole block from start to finish
     async run(options = {}) {
         let { plan, step } = await this.plan(options);
+        this.dispatchEvent(new CustomEvent("RunStarting", {
+            detail: { fbid: this.id, plan, options },
+        }));
         while (plan.currentStep < plan.length) {
             await step();
         }
         let value = plan[plan.length - 1].stepValue;
-        // TODO: is this useful?
-        // this.dispatchEvent(
-        //   new CustomEvent("RunComplete", {
-        //     detail: { fbid: this.id, value, plan, options },
-        //   })
-        // );
+        this.dispatchEvent(new CustomEvent("RunComplete", {
+            detail: { fbid: this.id, value, plan, options },
+        }));
         return value;
     }
     // Apply liquid templates to finalize plan with actual values
@@ -365,27 +443,37 @@ class fetchblock extends EventTarget {
     // Traverse all parents and flatten into a single block
     async flatten() {
         let flattened = [];
-        if (this.type == "block") {
-            // Todo: we should probably expect to accept just steps here
-            // i.e. with actual cross link in declarative we need to fetch and parse anyway
-            this.parent = this.request.block;
-            if (typeof this.parent == "string" || this.parent instanceof URL) {
-                let key = this.parent.toString().toLowerCase();
-                // Prevent cycles
-                if (this.remoteBlocks.has(key)) {
-                    throw new Error(`Duplicate block detected: ${key}`);
+        for (let step of this.steps) {
+            if (step.block) {
+                // Todo: we should probably expect to accept just steps here
+                // i.e. with actual cross link in declarative we need to fetch and parse anyway
+                let parent = step.block;
+                if (typeof parent == "string" || parent instanceof URL) {
+                    let key = parent.toString().toLowerCase();
+                    // Prevent cycles
+                    if (this.remoteBlocks.has(key)) {
+                        throw new Error(`Duplicate block detected: ${key}`);
+                    }
+                    this.remoteBlocks.add(key);
+                    if (key.startsWith("#") && this.sourceText) {
+                        // Optimization - if we have a local link within the same file then reuse
+                        // the same text rather than hitting the network again.
+                        parent = await fetchblocks.loadFromText(this.sourceText, this.loader, {
+                            id: key.substr(1),
+                        });
+                    }
+                    else {
+                        parent = await fetchblocks.loadFromURI(parent);
+                    }
+                    parent.remoteBlocks.add(...this.remoteBlocks.keys());
                 }
-                this.remoteBlocks.add(key);
-                this.parent = await fetchblocks.loadFromURI(this.parent);
-                this.parent.remoteBlocks.add(...this.remoteBlocks.keys());
+                let parentFlattened = await parent.flatten();
+                // Todo: Handle empty or other errors
+                flattened.push(...parentFlattened);
             }
-            let parentFlattened = await this.parent.flatten();
-            // Todo: Handle empty or other errors
-            flattened.push(...parentFlattened);
-            flattened.push(...this.transforms);
-        }
-        else {
-            flattened.push(this.request, ...this.transforms);
+            else {
+                flattened.push(step);
+            }
         }
         return flattened;
     }
@@ -405,7 +493,8 @@ class fetchblock extends EventTarget {
         if (secrets.length) {
             let requestURL = new URL(plan[0].resource);
             for (let [k, v] of secrets) {
-                if (!v.allowedOrigins || !v.allowedOrigins.includes(requestURL.origin)) {
+                if (!v.allowedOrigins ||
+                    !v.allowedOrigins.includes(requestURL.origin)) {
                     throw new Error(`Aborting. Attempted to use a disallowed key: ${k} at origin ${requestURL.origin}. Allowed origins: ${v.allowedOrigins?.join() || "none"}`);
                 }
                 else {
@@ -433,25 +522,41 @@ class fetchblock extends EventTarget {
                     options,
                 },
             }));
+            if (options.runInWorker && !IS_WORKER) {
+                // TODO: create a worker pool with import.meta.url and call fetchblocks.run with prepoluated data
+            }
+            // Todo: clean this mess up
+            if (plan.currentStep == 0 &&
+                !thisStep.resource &&
+                !options.stubResponse) {
+                throw new Error("Invalid run - no data source");
+            }
+            let incomingValue;
             if (plan.currentStep == 0) {
                 if (options.stubResponse) {
-                    stepValue = options.stubResponse;
+                    if (thisStep.resource) {
+                        stepValue = options.stubResponse;
+                    }
+                    else {
+                        incomingValue = options.stubResponse;
+                    }
                 }
                 else {
                     stepValue = await this.fetchData(thisStep, options);
                 }
-                thisStep.stepValue = stepValue;
             }
-            else {
-                let lastStep = plan[plan.currentStep - 1];
-                let incomingValue = lastStep.stepValue;
+            if (thisStep.type) {
+                if (!incomingValue) {
+                    let lastStep = plan[plan.currentStep - 1];
+                    incomingValue = lastStep.stepValue;
+                }
                 let transform = thisStep;
                 if (!builtins[transform.type]) {
                     throw new Error(`Unrecognized builtin: ${transform.type}`);
                 }
                 stepValue = await builtins[transform.type].call(null, incomingValue, transform);
-                thisStep.stepValue = stepValue;
             }
+            thisStep.stepValue = stepValue;
             plan.currentStep = plan.currentStep + 1;
             this.dispatchEvent(new CustomEvent("StepComplete", {
                 detail: {
@@ -468,5 +573,65 @@ class fetchblock extends EventTarget {
             step,
         };
     }
+}
+if (IS_WORKER) {
+    const HEALTHCHECK_INTERVAL = 100;
+    self.onmessage = async function (e) {
+        console.log(e, e.data);
+        // TODO: Run single step
+        if (e.data.type == "fetchblocks.runstep") {
+            try {
+                let block = new fetchblock(e.data.blocks);
+                let healthcheck = null;
+                block.addEventListener("PlanReady", (e) => {
+                    console.log(e);
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail,
+                    });
+                });
+                block.addEventListener("StepStarting", (e) => {
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail,
+                    });
+                });
+                block.addEventListener("StepComplete", (e) => {
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail,
+                    });
+                });
+                block.addEventListener("RunComplete", (e) => {
+                    clearInterval(healthcheck);
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail,
+                    });
+                });
+                block.addEventListener("RunStarting", (e) => {
+                    healthcheck = setInterval(() => {
+                        self.postMessage({
+                            type: "healthcheck",
+                            detail: performance.now(),
+                        });
+                    }, HEALTHCHECK_INTERVAL);
+                    self.postMessage({
+                        type: e.type,
+                        detail: e.detail,
+                    });
+                });
+                await block.run(e.data.options);
+            }
+            catch (e) {
+                self.postMessage({
+                    type: "Error",
+                    detail: {
+                        e: e.toString(),
+                    },
+                });
+            }
+        }
+    };
 }
 export { fetchblock, fetchblocks };

@@ -114,6 +114,14 @@ dntShim.Deno.test("fetchblocks - builtins", async () => {
   );
 });
 
+dntShim.Deno.test("fetchblocks - transform only", async () => {
+  assertEquals(
+    await fetchblocks.run([{ type: "jmespath", value: "a" }], {
+      stubResponse: { a: "val" },
+    }),
+    "val"
+  );
+});
 // TODO: replace this with something else
 dntShim.Deno.test("fetchblocks - jmespath", async () => {
   assertEquals(
@@ -260,6 +268,30 @@ dntShim.Deno.test("fetchblocks throws on disallowed origin", async () => {
     assert(true, `Threw ${e}`);
   }
 });
+dntShim.Deno.test("loadFromText with inheritance", async () => {
+  if (isNode) {
+    // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+    // and loadfromtext instead.
+    return;
+  }
+  let block = await fetchblocks.loadFromText(
+    dntShim.Deno.readTextFileSync("./testdata/blocks/multiple-json.json"),
+    null,
+    {
+      id: "n_top_stars",
+    }
+  );
+  let ret = await block.run({
+    dataset: {
+      num_rows: 3,
+    },
+  });
+  assertEquals(
+    ret,
+    "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
+  );
+});
+
 dntShim.Deno.test("fetchblocks loaders", async () => {
   if (isNode) {
     // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
@@ -513,6 +545,72 @@ dntShim.Deno.test("md to csv", async () => {
     ret,
     "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
   );
+});
+dntShim.Deno.test("multiple json blocks", async () => {
+  if (isNode) {
+    // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+    // and loadfromtext instead.
+    return;
+  }
+  for (let uri of [
+    "./testdata/blocks/multiple-json.json#n_top_stars",
+    "./testdata/blocks/multiple-json.json#n_top_stars_external_reference",
+  ]) {
+    let resource = new URL(uri, import.meta.url).toString();
+    let block = await fetchblocks.loadFromURI(resource);
+    let ret = await block.run({
+      dataset: {
+        num_rows: 3,
+      },
+    });
+    assertEquals(
+      ret,
+      "[freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp),345335,28583\r\n[996.ICU](https://github.com/996icu/996.ICU),262092,21527\r\n[free-programming-books](https://github.com/EbookFoundation/free-programming-books),232213,48692"
+    );
+  }
+
+  // TODO: see #n_top_stars_pure_transform. Should there be a way to share a set of transforms that
+  // don't have a fetch so that it's easier to share the steps with different fetches?
+  // For example:
+  /* {
+    "transforms":
+      [{ "type": "csv_to_json", }, { ... }],
+    "fetch_1": {
+      [ { resource: "example.com" }, { "block": "#transforms" }],
+    "fetch_2": {
+      [ { resource: "example.org" }, { "block": "#transforms" }],
+    }
+  } */
+  // The rules would be that a pure transform block must not have a top level fetch / block,
+  // While a normal block must have a top level fetch / block.
+});
+dntShim.Deno.test("likely blocks", async () => {
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`{
+      "fetch_1": [{ "resource": "example.com" }],
+      "fetch_2": [{ "resource": "example.org" }]
+    }`),
+    ["fetch_1", "fetch_2"]
+  );
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`[{ "resource": "example.com" }]`),
+    ["default"]
+  );
+  assertEquals(fetchblocks.getLikelyBlocksFromText(`invalid block text`), []);
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(`
+    <fetch-block id="fetch_1" resource="http://example.com"></fetch-block>
+    <fetch-block id="fetch_2" resource="http://example.com"></fetch-block>
+    `),
+    ["fetch_1", "fetch_2"]
+  );
+  assertEquals(
+    fetchblocks.getLikelyBlocksFromText(
+      `<fetch-block resource="http://example.com"></fetch-block>`
+    ),
+    ["default"]
+  );
+  assertEquals(fetchblocks.getLikelyBlocksFromText(`<div></div>`), []);
 });
 
 dntShim.Deno.test("graphql", async () => {
