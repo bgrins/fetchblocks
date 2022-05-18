@@ -1,4 +1,12 @@
-import { CONFIG, Liquid, DOMParser, builtinsString, nanoid, quickjs } from "./deps.js";
+import {
+  CONFIG,
+  Liquid,
+  DOMParser,
+  builtinsString,
+  nanoid,
+  quickjs,
+  makeShortlivedVm,
+} from "./deps.js";
 
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER =
@@ -14,42 +22,85 @@ if (typeof CustomEvent == "undefined") {
   };
 }
 
+// https://github.com/justjake/quickjs-emscripten/issues/11
+export async function qjs(str, input, options) {
+  console.time("Foo");
+  const vm = await makeShortlivedVm();
+  console.timeEnd("Foo");
 
-export async function qjs() {
-  const { getQuickJS } = quickjs;
-  const QuickJS = await getQuickJS()
-  const vm = QuickJS.newContext()
+	const db = [];
 
-  const logHandle = vm.newFunction("log", (...args) => {
-    const nativeArgs = args.map(vm.dump)
-    console.log("QuickJS:", ...nativeArgs)
-  })
-  // Partially implement `console` object
-  const consoleHandle = vm.newObject()
-  vm.setProp(consoleHandle, "log", logHandle)
-  vm.setProp(vm.global, "console", consoleHandle)
-  consoleHandle.dispose()
-  logHandle.dispose()
-  
-  const world = vm.newString("world")
-  vm.setProp(vm.global, "NAME", world)
-  world.dispose()
+	vm.setProp(
+		vm.global,
+		"addToDb",
+		vm.marshal((item) => {
+			db.push(item);
+			return { haha: "yeah" };
+		})
+	);
 
-  const result = vm.evalCode(`console.log("From interpreter", this); "Hello " + NAME + "!"`)
-  if (result.error) {
-    console.log("Execution failed:", vm.dump(result.error))
-    result.error.dispose()
-  } else {
-    console.log("Success:", vm.dump(result.value))
-    result.value.dispose()
-  }
+  console.time("Foo");
+	const handle = vm.unwrapResult(
+		vm.evalCode(`addToDb({ hello: "world", "": ":D" });`)
+	);
+	console.log("Success:", vm.dump(handle));
+  console.timeEnd("Foo");
 
-  vm.dispose()
+	console.log(db);
+
+  // const { getQuickJS } = quickjs;
+  // const QuickJS = await getQuickJS();
+  // const vm = QuickJS.newContext();
+  // console.log(vm.getString, vm)
+  // const logHandle = vm.newFunction("log", (...args) => {
+  //   const nativeArgs = args.map(vm.dump);
+  //   console.log("QuickJS:", ...nativeArgs);
+  // });
+
+  // // Partially implement `console` object
+  // const consoleHandle = vm.newObject();
+  // vm.setProp(consoleHandle, "log", logHandle);
+  // vm.setProp(vm.global, "console", consoleHandle);
+  // consoleHandle.dispose();
+  // logHandle.dispose();
+
+  // // TODO: input might be a string / object / etc
+  // const inputHandle = vm.newObject();
+  // if (input) {
+  //   input = JSON.parse(JSON.stringify(input))
+  // }
+  // vm.setProp(inputHandle, "TEST", vm.newString("test"));
+  // vm.setProp(vm.global, "input", inputHandle);
+  // inputHandle.dispose();
+  // const optionsHandle = vm.newObject();
+  // if (options) {
+  //   options = JSON.parse(JSON.stringify(options));
+  //   // Need to loop through and structured clone this in
+  //   vm.setProp(optionsHandle, "foo", vm.newString(options.foo));
+  // }
+  // vm.setProp(optionsHandle, "TEST", vm.newString("test"));
+  // vm.setProp(vm.global, "options", optionsHandle);
+  // optionsHandle.dispose();
+
+  // const world = vm.newString("world");
+  // vm.setProp(vm.global, "NAME", world);
+  // world.dispose();
+
+  // const result = vm.evalCode(
+  //   `console.log("From interpreter", options); "Hello " + NAME + "!"`
+  // );
+  // if (result.error) {
+  //   console.log("Execution failed:", vm.dump(result.error));
+  //   result.error.dispose();
+  // } else {
+  //   console.log("Success:", vm.dump(result.value));
+  //   result.value.dispose();
+  // }
+
+  // vm.dispose();
 }
 
-
 export function jsEval(str, input, options) {
-
   // The intent is for this to run in a sandbox, but for now eval it:
   let fn = new Function("input", "options", builtinsString + str);
 
@@ -263,10 +314,14 @@ blockLoaders.set("html", {
         // "resource": "example.com/{{ dataset.foo }}" shouldn't become
         // "resource": "example.com/{{%20dataset.foo%20}}" because liquid will complain at
         // ParseError: unexpected token at "%20dataset.pa..."
-        initialBlock.resource = decodeURI(new URL(initialBlock.resource, base).toString());
+        initialBlock.resource = decodeURI(
+          new URL(initialBlock.resource, base).toString()
+        );
       }
       if (initialBlock.block) {
-        initialBlock.block = decodeURI(new URL(initialBlock.block, base).toString());
+        initialBlock.block = decodeURI(
+          new URL(initialBlock.block, base).toString()
+        );
       }
     }
 

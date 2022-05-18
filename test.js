@@ -50,7 +50,12 @@ fetchblocks.env.set("NOTION_TOKEN", {
 });
 Deno.test("fetchblocks - jseval", async () => {
   // console.log(quickjs);
-  await qjs();
+  await qjs("1+1", null, {
+    foo: "bar"
+  });
+  await qjs("1+1", null, {
+    foo: "bar"
+  });
 
 });
 

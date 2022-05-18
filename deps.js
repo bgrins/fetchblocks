@@ -5,9 +5,13 @@ export { builtinsString } from "./builtins/builtins-bundle-string.js";
 
 export { default as quickjs } from "./quickjs-module.js";
 
+export { makeShortlivedVm } from "./quickjs-shortlived-vm.ts";
 let CONFIG = configSync();
 
 import * as jsdom from "./jsdom-module.js";
+
+// TODO: if we exposed this from the browserified thing instead could we tree shake and make this
+// smaller
 class DOMParser {
   constructor() {
     const { window } = new jsdom.default.JSDOM(``);
