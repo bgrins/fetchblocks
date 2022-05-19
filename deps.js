@@ -7,13 +7,13 @@ export { default as quickjs } from "./quickjs-module.js";
 
 let CONFIG = configSync();
 
-import * as jsdom from "./jsdom-module.js";
-
+import * as _jsdom from "./jsdom-module.js";
+const jsdom = _jsdom.default;
 class DOMParser {
   parseFromString(string, mimeType) {
     // TODO: if we exposed this from the browserified thing instead could we tree shake and make this
     // smaller
-    const { window: jsdomwindow } = new jsdom.default.JSDOM(``);
+    const { window: jsdomwindow } = new jsdom.JSDOM(``);
     const jsdomparser = new jsdomwindow.DOMParser();
     return jsdomparser.parseFromString(string, mimeType);
   }

@@ -5,6 +5,7 @@ import {
 } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
 import { fetchblock, fetchblocks, jsEval } from "./mod.js";
+import { DOMParser } from "./deps.js";
 import { isDeno, isNode } from "https://deno.land/x/which_runtime/mod.ts";
 
 // Building for node and web:
@@ -49,6 +50,69 @@ fetchblocks.env.set("NOTION_TOKEN", {
   allowedOrigins: ["https://api.notion.com"],
 });
 
+Deno.test("fetchblocks - outerhtml", async () => {
+  let document = new DOMParser().parseFromString(
+    Deno.readTextFileSync("./testdata/list-of-states-outerhtml.html"),
+    "text/html"
+  );
+
+  // let dom = new jsdom.JSDOM(outerHTML);
+  // let document =
+  // Todo: handle complicatd header colspan/rowspan like wikipedia has
+  let includeHeaders = false;
+  var table = document.querySelector("table");
+  var rows = [];
+  if (includeHeaders) {
+    rows = rows.concat([...table.querySelectorAll("thead tr")]);
+  }
+  var rows = rows.concat([...table.querySelectorAll("tbody tr")]);
+  var records = rows.map((row) => []);
+
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var cells = row.querySelectorAll("td, th");
+    var currentCellIndex = 0;
+    cells.forEach((cell, j) => {
+      records[i][currentCellIndex] = cell.textContent;
+      if (cell.rowSpan > 1) {
+        for (var z = 1; z < cell.rowSpan; z++) {
+          records[i + z][j] = cell.textContent;
+        }
+      }
+      if (cell.colSpan > 1) {
+        for (var z = 1; z < cell.colSpan; z++) {
+          records[i][j + z] = cell.textContent;
+        }
+      }
+      currentCellIndex += cell.colSpan || 1;
+    });
+  }
+
+  function toCSV(arr) {
+    var output = "";
+    arr.forEach((o, i) => {
+      o.forEach((p, j) => {
+        p = p.trim().replaceAll("\n", "\\n");
+        output += `"${p}"`;
+        if (j < o.length - 1) {
+          output += ",";
+        }
+      });
+      output += "\n";
+    });
+    return output;
+  }
+
+  var csv = toCSV(records);
+  console.log(csv);
+
+  Deno.writeTextFileSync(
+    "./testdata/list-of-states-outerhtml.csv",
+    csv.split("\n").join("\n")
+  );
+
+  // console.log("outerhtml builtin", dom);
+});
 Deno.test("fetchblocks - builtins", async () => {
   // Directly test builtin functions. For now this is done by essentially eval'ing
   // but the intention here is that this will be wasmboxed
@@ -57,8 +121,6 @@ Deno.test("fetchblocks - builtins", async () => {
     await jsEval("return builtins.jmespath(input, options)", { a: 1 }, "a"),
     1
   );
-
-  
 
   assertEquals(await jsEval("return builtins.noop(input, options)", { a: 1 }), {
     a: 1,
@@ -176,14 +238,16 @@ Deno.test("fetchblocks - transform only", async () => {
 // TODO: replace this with something else
 Deno.test("fetchblocks - jmespath", async () => {
   assertEquals(
-    await fetchblocks.run(JSON.parse(`[
+    await fetchblocks.run(
+      JSON.parse(`[
       {
         "resource":
           "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
       },
       { "type": "jmespath", "value": "Results[].{name: Make_Name, id: Make_ID}" },
       { "type": "jmespath", "value": "[?name == \`ASTON MARTIN\`]" }
-    ]`)),
+    ]`)
+    ),
     [
       {
         id: 440,
