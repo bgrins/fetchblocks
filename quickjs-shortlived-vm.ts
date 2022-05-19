@@ -1,5 +1,6 @@
 import defaultExport from "./quickjs-module.js";
-const { getQuickJS, InterruptAfterDeadline } = defaultExport;
+const { quickjs } = defaultExport;
+const { getQuickJS, InterruptAfterDeadline } = quickjs;
 
 // From https://github.com/suchipi/js-sandbox-demo/blob/4f631c905968153f9b5c8351ef03036d26ad1b28/src/shortlived-vm.ts#L9
 

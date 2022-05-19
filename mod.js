@@ -22,31 +22,43 @@ if (typeof CustomEvent == "undefined") {
   };
 }
 
+export async function qjs() {
+  let resp = await quickjs.executeCodeInSandbox(
+    builtinsString + 'return builtins.jmespath(input, { value: "a" })',
+    {
+      a: 1,
+    },
+    {
+      b: 5,
+    }
+  );
+  console.log("HERE", resp);
+}
 // https://github.com/justjake/quickjs-emscripten/issues/11
-export async function qjs(str, input, options) {
+export async function qjs2(str, input, options) {
   console.time("Foo");
   const vm = await makeShortlivedVm();
   console.timeEnd("Foo");
 
-	const db = [];
+  const db = [];
 
-	vm.setProp(
-		vm.global,
-		"addToDb",
-		vm.marshal((item) => {
-			db.push(item);
-			return { haha: "yeah" };
-		})
-	);
+  vm.setProp(
+    vm.global,
+    "addToDb",
+    vm.marshal((item) => {
+      db.push(item);
+      return { haha: "yeah" };
+    })
+  );
 
   console.time("Foo");
-	const handle = vm.unwrapResult(
-		vm.evalCode(`addToDb({ hello: "world", "": ":D" });`)
-	);
-	console.log("Success:", vm.dump(handle));
+  const handle = vm.unwrapResult(
+    vm.evalCode(`addToDb({ hello: "world", "": ":D" });`)
+  );
+  console.log("Success:", vm.dump(handle));
   console.timeEnd("Foo");
 
-	console.log(db);
+  console.log(db);
 
   // const { getQuickJS } = quickjs;
   // const QuickJS = await getQuickJS();
