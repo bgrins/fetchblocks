@@ -1966,14 +1966,18 @@
     jmespath.search;
     jmespath.strictDeepEqual;
     jmespath.tokenize;
-    function transform1(data, options, functions) {
+    async function transform1(data, options, functions) {
         if (typeof data != "object") {
-            throw new Error("Can't use jmespath on non object");
+            throw new Error("Can't use jmespath on non object: " + typeof data);
         }
-        if (!options.value) {
+        if (!options) {
             throw new Error("Empty jmespath passed in");
         }
-        return jmespath.search(data, options.value);
+        if (typeof options !== "string") {
+            throw new Error("Non string jmespath passed in");
+        }
+        const ret = jmespath.search(data, options);
+        return ret;
     }
     function X() {
         return {

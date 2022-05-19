@@ -1,114 +1,91 @@
 const quickjs = require("quickjs-emscripten");
-const { Arena } = require("quickjs-emscripten-sync");
+const ASYNC_EXECUTION = true;
+const MEMORY_LIMIT = 1024 * 1024 * 32;
+// Interrupt computation after N calls to the interrupt handler
+const MAX_INTERRUPTS = 1024;
 
-async function executeCodeInSandbox(code, input, options) {
-  const exposed = {
-    input,
-    options,
-    console: {
-      log: console.log,
-    },
-  };
-  const vm = (await quickjs.getQuickJS()).newContext();
-  const arena = new Arena(vm, {
-    isMarshalable: (target) => {
-      // prevent passing globalThis to QuickJS
-      if (target === exposed.console || target == exposed.console.log) {
-        return true;
-      }
-      if (target === exposed.input || target === exposed.options) {
-        return "json";
-      }
-      return false;
-    },
+async function getNewContextWithGlobals(exposed) {
+  const qjs = await quickjs.getQuickJS();
+  const runtime = qjs.newRuntime();
+
+  runtime.setMemoryLimit(MEMORY_LIMIT);
+  let interruptCycles = 0;
+  runtime.setInterruptHandler(() => ++interruptCycles > MAX_INTERRUPTS);
+  // runtime.setModuleLoader((moduleName) => {
+  //   console.log("module name", moduleName);
+  //   return `export default '${moduleName}'`;
+  // });
+
+  const vm = runtime.newContext();
+
+  // Add partial console:
+  const logHandle = vm.newFunction("log", (...args) => {
+    const nativeArgs = args.map(vm.dump);
+    console.log("fetchblock sandbox:", ...nativeArgs);
   });
-  arena.expose(exposed);
-
-  // https://github.com/reearth/quickjs-emscripten-sync/blob/fa03b25083654f68508ca202ad8add11beb274a9/src/index.ts#L84
-  // const handle = arena.vm.evalCodeAsync(`(async() => { return 2; })()`);
-  // const result = arena._unwrapResultAndUnmarshal(handle);
-
-  let result = await arena.evalCode(`(() => { ${code} })()`);
-  return result;
+  const consoleHandle = vm.newObject();
+  vm.setProp(consoleHandle, "log", logHandle);
+  vm.setProp(vm.global, "console", consoleHandle);
+  consoleHandle.dispose();
+  logHandle.dispose();
+  return vm;
 }
+async function executeCodeInSandbox(code, input, options, builtinsString) {
+  const vm = await getNewContextWithGlobals();
 
-async function testArena() {
-  const input = {
-    a: 1,
-    b: 2,
-  };
-  const options = {
-    c: 3,
-  };
+  // Inject our own globals into scope:
   const exposed = {
     input,
     options,
-    console: {
-      log: console.log,
-    },
   };
-  const vm = (await quickjs.getQuickJS()).newContext();
 
-  const arena = new Arena(vm, {
-    isMarshalable: (target) => {
-      console.log("HERE", target);
-      // prevent passing globalThis to QuickJS
-      if (target === exposed.console || target == exposed.console.log) {
-        return true;
-      }
-      if (target === exposed.input || target === exposed.options) {
-        console.log("wanting input");
-        return "json";
-      }
-      return false;
-    },
-  });
-  arena.expose(exposed);
+  if (builtinsString) {
+    vm.evalCode(builtinsString);
+  }
 
-  // const arena = new Arena(vm, { isMarshalable: true });
+  for (let name in exposed) {
+    const val = exposed[name];
+    const json = typeof val === "undefined" ? "undefined" : JSON.stringify(val);
+    vm.evalCode(
+      `const ${name} = ${json};`
+    );
+  }
 
-  // class Cls {
-  //   field = 0;
+  // TODO: check if the code is an esm and don't wrap in a function but instead call the default
+  // export (and allow imports)
 
-  //   method() {
-  //     return ++this.field;
-  //   }
-  // }
+  // TODO: Check async
 
-  // // We can pass objects to the VM and run code safely
-  // const exposed = {
-  //   Cls,
-  //   cls: new Cls(),
-  //   syncedCls: arena.sync(new Cls()),
-  // };
-  // arena.expose(exposed);
+  let result;
+  if (ASYNC_EXECUTION) {
+    let asyncResult = vm.evalCode(`(async() => { ${code} })()`);
+    const promise = vm
+      .unwrapResult(asyncResult)
+      .consume((result) => vm.resolvePromise(result));
+    vm.runtime.executePendingJobs();
+    result = await promise;
+  } else {
+    result = vm.evalCode(`(() => { ${code} })()`);
+  }
 
-  // let x = arena.evalCode(`input.a + input.b * options.c`);
+  if (result.error) {
+    let error = vm.dump(result.error);
+    result.error.dispose();
+    vm.dispose();
+    vm.runtime.dispose();
+    let err = new Error(error.message + "\n" + error.stack);
+    err.name = error.name;
+    throw err;
+  }
 
-  let x = arena.evalCode(`console.log("here"); Math.floor(1, 2)`);
-  console.log(x);
-  arena.evalCode(`input.a = 30`);
-  let y = arena.evalCode(`input.b = 100; console.log(input, input.b); input`);
-  console.log(y, exposed);
-  // arena.evalCode(`cls instanceof Cls`); // returns true
-  // arena.evalCode(`cls.field`); // returns 0
-  // arena.evalCode(`cls.method()`); // returns 1
-  // arena.evalCode(`cls.method()`); // returns 1
-  // arena.evalCode(`cls.field`); // returns 1
-
-  // arena.evalCode(`syncedCls.field`); // returns 0
-  // exposed.syncedCls.method(); // returns 1
-  // arena.evalCode(`syncedCls.field`); // returns 1
-
-  arena.dispose();
+  let value = vm.dump(result.value);
+  // console.log("fetchblock execution success:", value, "test");
+  result.value.dispose();
   vm.dispose();
-
-  // console.log(x, exposed, y)
-  // console.log("here", y);
+  vm.runtime.dispose();
+  return value;
 }
-
 module.exports = {
   quickjs,
-  testArena,
   executeCodeInSandbox,
 };

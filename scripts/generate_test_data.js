@@ -2,15 +2,29 @@ import { fetchblock, fetchblocks, jsEval } from "../mod.js";
 
 // deno run -A ./scripts/generate_test_data.js
 
-// Deno.writeTextFileSync(
-//   "./testdata/getallmakes.json",
-//   await fetchblocks.run([
-//     {
-//       resource:
-//         "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
-//     },
-//   ])
-// );
+let spOpen = await fetchblocks.loadFromURI(
+  new URL("../testdata/blocks/sp-to-csv.html#open-issues", import.meta.url)
+);
+let page1 = await spOpen.run({
+  verbose: true,
+  dataset: {
+    per_page: 1,
+    page: 1,
+  },
+});
+// TODO: pass option to skip headers on subsequent conversions to csv
+let page2 = await spOpen.run({
+  verbose: true,
+  dataset: {
+    per_page: 100,
+    page: 2,
+  },
+});
+
+let vehicles = await fetchblocks.loadFromURI(
+  new URL("../testdata/blocks/vehicles.html#base", import.meta.url)
+);
+Deno.writeTextFileSync("./testdata/getallmakes.json", JSON.stringify(await vehicles.run()));
 
 // let top100 = await new fetchblock([
 //   {
@@ -77,25 +91,6 @@ Deno.writeTextFileSync(
     verbose: true,
   })
 );
-
-let spOpen = await fetchblocks.loadFromURI(
-  new URL("../testdata/blocks/sp-to-csv.html#open-issues", import.meta.url)
-);
-let page1 = await spOpen.run({
-  verbose: true,
-  dataset: {
-    per_page: 100,
-    page: 1,
-  },
-});
-// TODO: pass option to skip headers on subsequent conversions to csv
-let page2 = await spOpen.run({
-  verbose: true,
-  dataset: {
-    per_page: 100,
-    page: 2,
-  },
-});
 
 Deno.writeTextFileSync(
   "./testdata/spOpen.csv",

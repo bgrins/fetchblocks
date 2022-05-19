@@ -38,6 +38,19 @@ const EXAMPLES = [
 ]`,
   },
   {
+    name: "Vehicles",
+    mode: "application/json",
+    content: `[
+  {
+    "resource":
+      "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
+  },
+  { "type": "jmespath", "value": "Results[].{name: Make_Name, id: Make_ID}" },
+  { "type": "jmespath", "value": "[?name == \`ASTON MARTIN\`]" }
+]`,
+  },
+  
+  {
     name: "Watched Repos",
     mode: "application/json",
     content: `[
@@ -276,6 +289,7 @@ async function runActiveBlock(activeBlockId) {
     window.block = block;
 
     block.addEventListener("PlanReady", (e) => {
+      console.log("Plan ready", e.detail)
       document.dispatchEvent(
         new CustomEvent("PlanReady", {
           detail: e.detail,
@@ -408,8 +422,9 @@ export function App() {
       // setActiveSteps(null);
     });
     document.addEventListener("DebuggerRunError", (e) => {
-      setIsRunning(false);
-      setActiveSteps(null);
+      // Todo: set error state
+      // setIsRunning(false);
+      // setActiveSteps(null);
     });
     document.addEventListener("PlanReady", (e) => {
       setActiveSteps(structuredClone(e.detail.plan));

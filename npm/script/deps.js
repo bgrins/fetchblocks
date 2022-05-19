@@ -41,12 +41,12 @@ let CONFIG = (0, mod_js_1.configSync)();
 exports.CONFIG = CONFIG;
 const jsdom = __importStar(require("./jsdom-module.js"));
 class DOMParser {
-    constructor() {
-        const { window } = new jsdom.default.JSDOM(``);
-        this._parser = new window.DOMParser();
-    }
     parseFromString(string, mimeType) {
-        return this._parser.parseFromString(string, mimeType);
+        // TODO: if we exposed this from the browserified thing instead could we tree shake and make this
+        // smaller
+        const { window: jsdomwindow } = new jsdom.default.JSDOM(``);
+        const jsdomparser = new jsdomwindow.DOMParser();
+        return jsdomparser.parseFromString(string, mimeType);
     }
 }
 exports.DOMParser = DOMParser;

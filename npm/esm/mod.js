@@ -1,6 +1,6 @@
 import "./_dnt.polyfills.js";
 import * as dntShim from "./_dnt.shims.js";
-import { CONFIG, Liquid, DOMParser, builtinsString, nanoid, quickjs } from "./deps.js";
+import { CONFIG, Liquid, DOMParser, builtinsString, nanoid, quickjs, } from "./deps.js";
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
 if (typeof CustomEvent == "undefined") {
@@ -12,38 +12,11 @@ if (typeof CustomEvent == "undefined") {
         }
     };
 }
-export async function qjs() {
-    const { getQuickJS } = quickjs;
-    const QuickJS = await getQuickJS();
-    const vm = QuickJS.newContext();
-    const logHandle = vm.newFunction("log", (...args) => {
-        const nativeArgs = args.map(vm.dump);
-        console.log("QuickJS:", ...nativeArgs);
-    });
-    // Partially implement `console` object
-    const consoleHandle = vm.newObject();
-    vm.setProp(consoleHandle, "log", logHandle);
-    vm.setProp(vm.global, "console", consoleHandle);
-    consoleHandle.dispose();
-    logHandle.dispose();
-    const world = vm.newString("world");
-    vm.setProp(vm.global, "NAME", world);
-    world.dispose();
-    const result = vm.evalCode(`console.log("From interpreter", this); "Hello " + NAME + "!"`);
-    if (result.error) {
-        console.log("Execution failed:", vm.dump(result.error));
-        result.error.dispose();
-    }
-    else {
-        console.log("Success:", vm.dump(result.value));
-        result.value.dispose();
-    }
-    vm.dispose();
-}
 export function jsEval(str, input, options) {
-    // The intent is for this to run in a sandbox, but for now eval it:
-    let fn = new Function("input", "options", builtinsString + str);
-    return fn(input, options);
+    return quickjs.executeCodeInSandbox(str, input, options, builtinsString);
+    // TODO: expose a debugging only mode that does normal eval:
+    // let fn = new Function("input", "options", builtinsString + str);
+    // return fn(input, options);
 }
 function textIsJSON(text) {
     try {
@@ -54,23 +27,24 @@ function textIsJSON(text) {
     return false;
 }
 const builtins = {
-    log(data) {
+    async log(data) {
         console.log(data);
         return data;
     },
-    noop(data, transform) {
+    async noop(data, transform) {
         return jsEval("return builtins.noop(input, options)", data, transform);
     },
-    jmespath(data, transform) {
-        return jsEval("return builtins.jmespath(input, options)", data, transform);
+    async jmespath(data, transform) {
+        console.log("Inside builtin", data, transform);
+        return jsEval("const r = builtins.jmespath(input, options); console.log('response', JSON.stringify(input), options, r); return r;", data, transform.value);
     },
-    md_to_json(data, transform) {
+    async md_to_json(data, transform) {
         return jsEval("return builtins.md_to_json(input, options)", data, transform);
     },
-    csv_to_json(data, transform) {
+    async csv_to_json(data, transform) {
         return jsEval("return builtins.csv_to_json(input, options)", data, transform);
     },
-    json_to_csv(data, transform) {
+    async json_to_csv(data, transform) {
         return jsEval("return builtins.json_to_csv(input, options)", data, transform);
     },
     async script(data, transform) {
@@ -579,6 +553,7 @@ class fetchblock extends EventTarget {
                 if (!incomingValue) {
                     let lastStep = plan[plan.currentStep - 1];
                     incomingValue = lastStep.stepValue;
+                    console.log("INCOMING VALUE", lastStep);
                 }
                 let transform = thisStep;
                 if (!builtins[transform.type]) {

@@ -1,4 +1,11 @@
-import { CONFIG, Liquid, DOMParser, builtinsString, nanoid, quickjs } from "./deps.js";
+import {
+  CONFIG,
+  Liquid,
+  DOMParser,
+  builtinsString,
+  nanoid,
+  quickjs,
+} from "./deps.js";
 
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER =
@@ -15,10 +22,10 @@ if (typeof CustomEvent == "undefined") {
 }
 
 export function jsEval(str, input, options) {
-  // The intent is for this to run in a sandbox, but for now eval it:
-  let fn = new Function("input", "options", builtinsString + str);
-
-  return fn(input, options);
+  return quickjs.executeCodeInSandbox(str, input, options, builtinsString);
+  // TODO: expose a debugging only mode that does normal eval:
+  // let fn = new Function("input", "options", builtinsString + str);
+  // return fn(input, options);
 }
 
 function textIsJSON(text) {
@@ -30,31 +37,36 @@ function textIsJSON(text) {
 }
 
 const builtins = {
-  log(data) {
+  async log(data) {
     console.log(data);
     return data;
   },
-  noop(data, transform) {
+  async noop(data, transform) {
     return jsEval("return builtins.noop(input, options)", data, transform);
   },
-  jmespath(data, transform) {
-    return jsEval("return builtins.jmespath(input, options)", data, transform);
+  async jmespath(data, transform) {
+    console.log("Inside builtin", data, transform);
+    return jsEval(
+      "const r = builtins.jmespath(input, options); console.log('response', JSON.stringify(input), options, r); return r;",
+      data,
+      transform.value
+    );
   },
-  md_to_json(data, transform) {
+  async md_to_json(data, transform) {
     return jsEval(
       "return builtins.md_to_json(input, options)",
       data,
       transform
     );
   },
-  csv_to_json(data, transform) {
+  async csv_to_json(data, transform) {
     return jsEval(
       "return builtins.csv_to_json(input, options)",
       data,
       transform
     );
   },
-  json_to_csv(data, transform) {
+  async json_to_csv(data, transform) {
     return jsEval(
       "return builtins.json_to_csv(input, options)",
       data,
@@ -228,10 +240,14 @@ blockLoaders.set("html", {
         // "resource": "example.com/{{ dataset.foo }}" shouldn't become
         // "resource": "example.com/{{%20dataset.foo%20}}" because liquid will complain at
         // ParseError: unexpected token at "%20dataset.pa..."
-        initialBlock.resource = decodeURI(new URL(initialBlock.resource, base).toString());
+        initialBlock.resource = decodeURI(
+          new URL(initialBlock.resource, base).toString()
+        );
       }
       if (initialBlock.block) {
-        initialBlock.block = decodeURI(new URL(initialBlock.block, base).toString());
+        initialBlock.block = decodeURI(
+          new URL(initialBlock.block, base).toString()
+        );
       }
     }
 
@@ -663,6 +679,7 @@ class fetchblock extends EventTarget {
         if (!incomingValue) {
           let lastStep = plan[plan.currentStep - 1];
           incomingValue = lastStep.stepValue;
+          console.log("INCOMING VALUE", lastStep)
         }
         let transform = thisStep;
         if (!builtins[transform.type]) {

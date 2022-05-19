@@ -5,7 +5,6 @@ import {
   builtinsString,
   nanoid,
   quickjs,
-  makeShortlivedVm,
 } from "./deps.js";
 
 const LIQUID_ENGINE = new Liquid();
@@ -22,101 +21,11 @@ if (typeof CustomEvent == "undefined") {
   };
 }
 
-export async function qjs() {
-  let resp = await quickjs.executeCodeInSandbox(
-    builtinsString + 'return builtins.jmespath(input, { value: "a" })',
-    {
-      a: 1,
-    },
-    {
-      b: 5,
-    }
-  );
-  console.log("HERE", resp);
-}
-// https://github.com/justjake/quickjs-emscripten/issues/11
-export async function qjs2(str, input, options) {
-  console.time("Foo");
-  const vm = await makeShortlivedVm();
-  console.timeEnd("Foo");
-
-  const db = [];
-
-  vm.setProp(
-    vm.global,
-    "addToDb",
-    vm.marshal((item) => {
-      db.push(item);
-      return { haha: "yeah" };
-    })
-  );
-
-  console.time("Foo");
-  const handle = vm.unwrapResult(
-    vm.evalCode(`addToDb({ hello: "world", "": ":D" });`)
-  );
-  console.log("Success:", vm.dump(handle));
-  console.timeEnd("Foo");
-
-  console.log(db);
-
-  // const { getQuickJS } = quickjs;
-  // const QuickJS = await getQuickJS();
-  // const vm = QuickJS.newContext();
-  // console.log(vm.getString, vm)
-  // const logHandle = vm.newFunction("log", (...args) => {
-  //   const nativeArgs = args.map(vm.dump);
-  //   console.log("QuickJS:", ...nativeArgs);
-  // });
-
-  // // Partially implement `console` object
-  // const consoleHandle = vm.newObject();
-  // vm.setProp(consoleHandle, "log", logHandle);
-  // vm.setProp(vm.global, "console", consoleHandle);
-  // consoleHandle.dispose();
-  // logHandle.dispose();
-
-  // // TODO: input might be a string / object / etc
-  // const inputHandle = vm.newObject();
-  // if (input) {
-  //   input = JSON.parse(JSON.stringify(input))
-  // }
-  // vm.setProp(inputHandle, "TEST", vm.newString("test"));
-  // vm.setProp(vm.global, "input", inputHandle);
-  // inputHandle.dispose();
-  // const optionsHandle = vm.newObject();
-  // if (options) {
-  //   options = JSON.parse(JSON.stringify(options));
-  //   // Need to loop through and structured clone this in
-  //   vm.setProp(optionsHandle, "foo", vm.newString(options.foo));
-  // }
-  // vm.setProp(optionsHandle, "TEST", vm.newString("test"));
-  // vm.setProp(vm.global, "options", optionsHandle);
-  // optionsHandle.dispose();
-
-  // const world = vm.newString("world");
-  // vm.setProp(vm.global, "NAME", world);
-  // world.dispose();
-
-  // const result = vm.evalCode(
-  //   `console.log("From interpreter", options); "Hello " + NAME + "!"`
-  // );
-  // if (result.error) {
-  //   console.log("Execution failed:", vm.dump(result.error));
-  //   result.error.dispose();
-  // } else {
-  //   console.log("Success:", vm.dump(result.value));
-  //   result.value.dispose();
-  // }
-
-  // vm.dispose();
-}
-
 export function jsEval(str, input, options) {
-  // The intent is for this to run in a sandbox, but for now eval it:
-  let fn = new Function("input", "options", builtinsString + str);
-
-  return fn(input, options);
+  return quickjs.executeCodeInSandbox(str, input, options, builtinsString);
+  // TODO: expose a debugging only mode that does normal eval:
+  // let fn = new Function("input", "options", builtinsString + str);
+  // return fn(input, options);
 }
 
 function textIsJSON(text) {
@@ -128,31 +37,36 @@ function textIsJSON(text) {
 }
 
 const builtins = {
-  log(data) {
+  async log(data) {
     console.log(data);
     return data;
   },
-  noop(data, transform) {
+  async noop(data, transform) {
     return jsEval("return builtins.noop(input, options)", data, transform);
   },
-  jmespath(data, transform) {
-    return jsEval("return builtins.jmespath(input, options)", data, transform);
+  async jmespath(data, transform) {
+    console.log("Inside builtin", data, transform);
+    return jsEval(
+      "const r = builtins.jmespath(input, options); console.log('response', JSON.stringify(input), options, r); return r;",
+      data,
+      transform.value
+    );
   },
-  md_to_json(data, transform) {
+  async md_to_json(data, transform) {
     return jsEval(
       "return builtins.md_to_json(input, options)",
       data,
       transform
     );
   },
-  csv_to_json(data, transform) {
+  async csv_to_json(data, transform) {
     return jsEval(
       "return builtins.csv_to_json(input, options)",
       data,
       transform
     );
   },
-  json_to_csv(data, transform) {
+  async json_to_csv(data, transform) {
     return jsEval(
       "return builtins.json_to_csv(input, options)",
       data,
@@ -765,6 +679,7 @@ class fetchblock extends EventTarget {
         if (!incomingValue) {
           let lastStep = plan[plan.currentStep - 1];
           incomingValue = lastStep.stepValue;
+          console.log("INCOMING VALUE", lastStep)
         }
         let transform = thisStep;
         if (!builtins[transform.type]) {

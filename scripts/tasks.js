@@ -1,3 +1,5 @@
+// TODO: Bundle the node_deps with browserify/esbuild/etc
+
 export async function bundleBuiltins() {
   const { files, diagnostics } = await Deno.emit(
     new URL("../builtins/exports.js", import.meta.url),

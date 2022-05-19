@@ -61,18 +61,14 @@ mod_js_1.fetchblocks.env.set("NOTION_TOKEN", {
     value: mod_js_1.fetchblocks.env.get("NOTION_TOKEN"),
     allowedOrigins: ["https://api.notion.com"],
 });
-dntShim.Deno.test("fetchblocks - jseval", async () => {
-    // console.log(quickjs);
-    await (0, mod_js_1.qjs)();
-});
 dntShim.Deno.test("fetchblocks - builtins", async () => {
     // Directly test builtin functions. For now this is done by essentially eval'ing
     // but the intention here is that this will be wasmboxed
-    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.jmespath(input, options)", { a: 1 }, { value: "a" }), 1);
-    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.noop(input, options)", { a: 1 }), {
+    (0, asserts_js_1.assertEquals)(await (0, mod_js_1.jsEval)("return builtins.jmespath(input, options)", { a: 1 }, "a"), 1);
+    (0, asserts_js_1.assertEquals)(await (0, mod_js_1.jsEval)("return builtins.noop(input, options)", { a: 1 }), {
         a: 1,
     });
-    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.csv_to_json(input, options)", "foo,bar,baz", {}), {
+    (0, asserts_js_1.assertEquals)(await (0, mod_js_1.jsEval)("return builtins.csv_to_json(input, options)", "foo,bar,baz", {}), {
         data: [["foo", "bar", "baz"]],
         errors: [],
         meta: {
@@ -83,11 +79,11 @@ dntShim.Deno.test("fetchblocks - builtins", async () => {
             truncated: false,
         },
     });
-    (0, asserts_js_1.assertEquals)((0, mod_js_1.jsEval)("return builtins.json_to_csv(input, options)", [["foo", "bar", "baz"]], {}), "foo,bar,baz");
+    (0, asserts_js_1.assertEquals)(await (0, mod_js_1.jsEval)("return builtins.json_to_csv(input, options)", [["foo", "bar", "baz"]], {}), "foo,bar,baz");
     // console.log(csv_to_json());
     // console.log(json_to_csv([["foo", "bar", "baz"]]));
     // TODO: shouldn't this assertEquals? The assertion doesn't show a diff but still fails
-    (0, asserts_js_1.assertObjectMatch)((0, mod_js_1.jsEval)("return builtins.md_to_json(input, options)", "# header"), [
+    (0, asserts_js_1.assertObjectMatch)(await (0, mod_js_1.jsEval)("return builtins.md_to_json(input, options)", "# header"), [
         {
             depth: 1,
             raw: "# header",
@@ -140,13 +136,14 @@ dntShim.Deno.test("fetchblocks - transform only", async () => {
 });
 // TODO: replace this with something else
 dntShim.Deno.test("fetchblocks - jmespath", async () => {
-    (0, asserts_js_1.assertEquals)(await mod_js_1.fetchblocks.run([
-        {
-            resource: "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
-        },
-        { type: "jmespath", value: "Results[].{name: Make_Name, id: Make_ID}" },
-        { type: "jmespath", value: "[?name == `ASTON MARTIN`]" },
-    ]), [
+    (0, asserts_js_1.assertEquals)(await mod_js_1.fetchblocks.run(JSON.parse(`[
+      {
+        "resource":
+          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
+      },
+      { "type": "jmespath", "value": "Results[].{name: Make_Name, id: Make_ID}" },
+      { "type": "jmespath", "value": "[?name == \`ASTON MARTIN\`]" }
+    ]`)), [
         {
             id: 440,
             name: "ASTON MARTIN",
@@ -385,7 +382,7 @@ dntShim.Deno.test("fetchblocks custom script calling builtin", async () => {
         { resource: "http://example.com" },
         {
             type: "script",
-            value: "return builtins.jmespath(input, { value: 'a' })",
+            value: "return builtins.jmespath(input, 'a')",
         },
     ], { stubResponse: { a: 1 } }), 1);
 });
