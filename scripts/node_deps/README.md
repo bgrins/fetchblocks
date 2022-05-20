@@ -10,7 +10,4 @@ https://github.com/denoland/deno/discussions/10105
 
 cd scripts/node_deps
 
-npx browserify quickjs-exporter.js --standalone quickjs > quickjs-browser.js && npx esbuild quickjs-browser.js --format=esm --minify > ../../quickjs-module.js
 npx browserify jsdom-exporter.js  --standalone DOMParser > jsdom-browser.js && npx esbuild jsdom-browser.js --format=esm --minify > ../../jsdom-module.js
-
-npx esbuild ../../builtins/exports.js --format=esm --bundle=true > ../../builtins/builtins-bundle-module.js

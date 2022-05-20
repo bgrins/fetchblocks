@@ -32,40 +32,6 @@ export async function bundleBuiltins() {
       JSON.stringify(script) +
       "; export { builtinsString }"
   );
-  const p = Deno.run({
-    cmd: [
-      "npx",
-      "esbuild",
-      "./builtins/exports.js",
-      "--format=esm",
-      "--bundle=true",
-    ],
-    stdout: "piped",
-    stderr: "piped",
-    stdin: "null",
-  });
-  await p.status();
-  let esm = new TextDecoder().decode(await p.output());
-  // console.log();
-  // console.log(p);
-
-  Deno.writeTextFileSync("./builtins/builtins-bundle-module.js", esm);
-  const esmFile = (await Deno.emit(
-    new URL("../builtins/builtins-bundle-module.js", import.meta.url),
-    {
-      bundle: "module",
-      compilerOptions: {
-        // checkJs: true,
-      },
-    }
-  )).files["deno:///bundle.js"];
-  Deno.writeTextFileSync("./builtins/builtins-bundle-module-deps.js", esmFile);
-  Deno.writeTextFileSync(
-    "./builtins/builtins-bundle-module-string.js",
-    "const builtinsString = " +
-      JSON.stringify(esmFile) +
-      "; export { builtinsString }"
-  );
 }
 
 export async function bundleWeb() {
