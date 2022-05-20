@@ -7,6 +7,9 @@ import {
 import { fetchblock, fetchblocks, jsEval } from "./mod.js";
 import { DOMParser } from "./deps.js";
 import { isDeno, isNode } from "https://deno.land/x/which_runtime/mod.ts";
+import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
+
+const CONFIG = configSync();
 
 // Building for node and web:
 // deno run -A --unstable scripts/build.js 0.1.0
@@ -46,8 +49,12 @@ import { fetchblocks } from "@bgrins/fetchblocks"
 // deno test --watch --allow-net --allow-read
 
 fetchblocks.env.set("NOTION_TOKEN", {
-  value: fetchblocks.env.get("NOTION_TOKEN"),
+  value: CONFIG["NOTION_TOKEN"],
   allowedOrigins: ["https://api.notion.com"],
+});
+fetchblocks.env.set("GITHUB_TOKEN", {
+  value: CONFIG["GITHUB_TOKEN"],
+  allowedOrigins: ["https://api.github.com"],
 });
 
 Deno.test("fetchblocks - builtins", async () => {
@@ -264,7 +271,25 @@ Deno.test("fetchblocks - jmespath", async () => {
   //   ]
   // );
 });
-
+Deno.test("fetchblocks - transform src", async () => {
+  assertEquals(
+    await fetchblocks.run(
+      [
+        {
+          resource: "https://example.com",
+        },
+        {
+          type: "script",
+          src: "https://raw.githubusercontent.com/bgrins/fetchblocks/b4dc7e914bf830d4868299e591300eee2e807b9f/utils/table-to-csv.js",
+        },
+      ],
+      {
+        stubResponse: "<table><tr><td>1</td><td>2</td>",
+      }
+    ),
+    "1,2"
+  );
+});
 Deno.test("fetchblocks - notion", async () => {
   // This is the internal JSON representation which can be used directly,
   // or you can use the HTML Custom Element syntax
@@ -790,10 +815,7 @@ Deno.test("gist", async () => {
       states:CLOSED) { edges { node { title url labels(first:5) { edges { node {
       name } } } } } } } }`,
       }),
-      bearer: {
-        value: fetchblocks.env.get("GITHUB_TOKEN"),
-        allowedOrigins: ["https://api.github.com"],
-      },
+      bearer: fetchblocks.env.get("GITHUB_TOKEN"),
     },
   });
   assertEquals(ret, {

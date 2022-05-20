@@ -3,9 +3,12 @@ import { parse } from "https://deno.land/std/flags/mod.ts";
 import { resolve } from "https://deno.land/std/path/mod.ts";
 import { walk } from "https://deno.land/std/fs/mod.ts";
 import { exists, existsSync } from "https://deno.land/std/fs/mod.ts";
+import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
 
 // deno run -A cmd.js testdata/blocks/external1.html --dataset foo=bar --dataset bar=baz
 // deno run -A cmd.js testdata/blocks/top-stars.json --dataset num_rows=10
+// deno run --allow-read --allow-net --watch cmd.js ./testdata/blocks/multiple-json.json#n_top_stars_external_reference --dataset num_rows=10
+
 
 async function main(args) {
   const parsed = parse(args);
@@ -46,10 +49,9 @@ async function main(args) {
       try {
         // Handle `--dataset num_rows='{"value": 10}'`
         ds[split[0]] = JSON.parse(ds[split[0]]);
-      } catch(e) { }
+      } catch (e) {}
     }
   }
-
 
   console.log(ds);
 
@@ -57,10 +59,14 @@ async function main(args) {
   try {
     url = new URL(file);
   } catch (e) {
-    const fileFullPath = resolve(Deno.cwd(), file);
-    if (existsSync(fileFullPath)) {
-      url = new URL(fileFullPath, import.meta.url);
-    }
+    try {
+      url = new URL(file, import.meta.url);
+      console.log(url);
+      if (!existsSync(url.pathname)) {
+        console.error(`No file at ${url.pathname}`);
+        return;
+      }
+    } catch (e) {}
   }
 
   if (!url) {
@@ -76,7 +82,9 @@ async function main(args) {
       dataset: ds,
       verbose,
     });
-    console.log(`Not running because --dry-run was passed. Here's the plan (${resp.plan.length} steps)`);
+    console.log(
+      `Not running because --dry-run was passed. Here's the plan (${resp.plan.length} steps)`
+    );
     console.table(resp.plan.map((step) => [step]));
   } else {
     resp = await block.run({

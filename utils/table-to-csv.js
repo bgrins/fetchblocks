@@ -182,11 +182,11 @@ export default async function transform(input, options = {}) {
   });
 }
 
-console.log(
-  await transform(
-    "<table><thead><tr><td>hi</td><td>there</td></tr></thead><tr><td>0</td><td>1</td></tr></table>",
-    {
-      includeheaders: true,
-    }
-  )
-);
+// console.log(
+//   await transform(
+//     "<table><thead><tr><td>hi</td><td>there</td></tr></thead><tr><td>0</td><td>1</td></tr></table>",
+//     {
+//       includeheaders: true,
+//     }
+//   )
+// );

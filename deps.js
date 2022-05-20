@@ -1,11 +1,9 @@
-import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
 export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
 import jmespath from "https://esm.sh/jmespath";
 export { builtinsString } from "./builtins/builtins-bundle-string.js";
 
-export {execInSandbox } from "../js-sandbox/mod.js"
-
-let CONFIG = configSync();
+export { execInSandbox } from "https://raw.githubusercontent.com/bgrins/js-sandbox/main/mod.js";
+// export {execInSandbox } from "../js-sandbox/mod.js";
 
 import * as _jsdom from "./jsdom-module.js";
 const jsdom = _jsdom.default;
@@ -20,7 +18,6 @@ class DOMParser {
 }
 
 export { DOMParser };
-export { CONFIG };
 export { jmespath };
 
 // https://github.com/ai/nanoid/:

@@ -1,5 +1,4 @@
 import {
-  CONFIG,
   Liquid,
   DOMParser,
   builtinsString,
@@ -58,7 +57,7 @@ const builtins = {
   async jmespath(data, transform) {
     console.log("Inside builtin", data, transform);
     return jsEval(
-      "const r = builtins.jmespath(input, options); console.log('response', JSON.stringify(input), options, r); return r;",
+      "return builtins.jmespath(input, options);",
       data,
       transform.value
     );
@@ -85,15 +84,20 @@ const builtins = {
     );
   },
   async script(data, transform) {
-    // TODO: Use sandbox
     if (transform.value) {
       return jsEval(transform.value, data, transform);
     } else if (transform.src) {
+      return jsEval(`
+        import mod from "${transform.src}";
+        export default function(opts) {
+          return mod(opts);
+        }
+      `, data, transform)
       // TODO: Parse out the module to get the function body. Or get the new interpreter
       // to just handle and call modules
-      throw new Error(
-        `Remote module load not implemented yet - ${transform.src}`
-      );
+      // throw new Error(
+      //   `Remote module load not implemented yet - ${transform.src}`
+      // );
     }
   },
 };
@@ -157,7 +161,7 @@ blockLoaders.set("json", {
     }
 
     if (!Array.isArray(ret)) {
-      throw new Error(`JSON must be an array for now: ${content}`);
+      throw new Error(`JSON must be an array for now: ${content}. Did you mean to pass an id in the URL hash?`);
     }
 
     if (base) {
@@ -289,7 +293,7 @@ const fetchblocks = (() => {
   return {
     blockLoaders,
     // By default this will read from dotenv. If you want more you can set:
-    env: new Map(Object.entries(CONFIG)),
+    env: new Map(),
 
     getLoaderForText(text) {
       let loader;
