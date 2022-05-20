@@ -122,8 +122,9 @@ statesToCSV();
 
 // Todo: make this a reference block (without being a "builtin" by allowing ESM imports from custom script)
 // Pass jsdom into the sandbox as a builtin
+// Todo: test this using WPT (generating expected results by copy/pasting into sheets)
+// https://wpt.live/html/semantics/tabular-data/
 function statesToCSV() {
-
   let document = new DOMParser().parseFromString(
     Deno.readTextFileSync("./testdata/list-of-states-outerhtml.html"),
     "text/html"
@@ -132,40 +133,123 @@ function statesToCSV() {
   // let dom = new jsdom.JSDOM(outerHTML);
   // let document =
   // Todo: handle complicatd header colspan/rowspan like wikipedia has
-  let includeHeaders = false;
+  let includeHeaders = true;
   var table = document.querySelector("table");
   var rows = [];
+  var numHeaderRows = 0;
   if (includeHeaders) {
-    rows = rows.concat([...table.querySelectorAll("thead tr")]);
+    let headerRows = table.querySelectorAll("thead tr");
+    for (let i = 0; i < headerRows.length; i++) {
+      rows.push(headerRows[i]);
+    }
+    rows = rows.concat(...table.querySelectorAll("thead tr"));
+    numHeaderRows = rows.length;
   }
-  var rows = rows.concat([...table.querySelectorAll("tbody tr")]);
-  var records = rows.map((row) => []);
+  var rows = rows.concat(...table.querySelectorAll("tbody tr"));
+  // console.log(rows);
+  function childCells(row) {
+    return [...row.children].filter((c) => {
+      return c.tagName == "TD" || c.tagName == "TH";
+    });
+  }
+  let maxRowLength = Math.max.apply(
+    null,
+    rows.map((r) => childCells(r).length)
+  );
+  let minRowLength = Math.min.apply(
+    null,
+    rows.map((r) => childCells(r).length)
+  );
+  console.log(maxRowLength, minRowLength);
+  var records = rows.map((row) => new Array(maxRowLength).fill(null));
+  console.log(records[0].length);
 
   for (var i = 0; i < rows.length; i++) {
     var row = rows[i];
-    var cells = row.querySelectorAll("td, th");
+    var cells = childCells(row);
     var currentCellIndex = 0;
     cells.forEach((cell, j) => {
-      records[i][currentCellIndex] = cell.textContent;
-      if (cell.rowSpan > 1) {
-        for (var z = 1; z < cell.rowSpan; z++) {
-          records[i + z][j] = cell.textContent;
+      let rowSpan = cell.rowSpan || 1;
+      let colSpan = cell.colSpan || 1;
+      // records[i][currentCellIndex] = cell.textContent;
+      // if (cell.rowSpan > 1 || cell.colSpan > 1) {
+      for (var y = 0; y < colSpan; y++) {
+        for (var z = 0; z < rowSpan; z++) {
+          // Todo: find the next open one (i.e. if a previous rowspan expanded)
+          while (records[i + z][currentCellIndex]) {
+            currentCellIndex += 1;
+          }
+          if (currentCellIndex > maxRowLength) {
+            console.error(cell.textContent);
+            throw new Error(
+              "Too many cells (total colspan larger than cells) " +
+                i +
+                "  " +
+                j +
+                " " +
+                currentCellIndex +
+                "  " +
+                maxRowLength
+            );
+          }
+          // console.log()
+          records[i + z][currentCellIndex] = cell;
         }
+        currentCellIndex += 1;
+        // records[i + z][j] = cell.textContent;
       }
-      if (cell.colSpan > 1) {
-        for (var z = 1; z < cell.colSpan; z++) {
-          records[i][j + z] = cell.textContent;
-        }
-      }
-      currentCellIndex += cell.colSpan || 1;
+      // }
+      // if (cell.colSpan > 1) {
+      //   for (var z = 1; z < cell.colSpan; z++) {
+      //     records[i][j + z] = cell.textContent;
+      //   }
+      // }
     });
+  }
+
+  console.log(
+    Math.max.apply(
+      null,
+      rows.map((r) => childCells(r).length)
+    ),
+    Math.min.apply(
+      null,
+      rows.map((r) => childCells(r).length)
+    )
+  );
+
+  if (includeHeaders && numHeaderRows > 1) {
+    let labels = new Array(maxRowLength).fill("");
+    console.log("NUM HEADER", records[0].length, numHeaderRows, labels.length);
+    // let labels = new Array(rows[0].length).fill("");
+    let colTitles = [];
+    for (let j = 0; j < maxRowLength; j++) {
+      let titleSet = new Set();
+      for (let i = 0; i < numHeaderRows; i++) {
+        titleSet.add(records[i][j]);
+        // colTitles[colTitles.length - 1] += (records[i][j]?.textContent?.trim() || "ERR");
+        // labels[j] += records[i][j]?.textContent?.trim() || "ERR";
+      }
+      colTitles.push(
+        [...titleSet.values()]
+          .map((el) => el.textContent.trim())
+          .filter((text) => text != "")
+          .join(" - ")
+      );
+      // labels[i][j] ? labels[i][j] + rows[i][j] : rows[i][j];
+    }
+    // console.log(labels);
+    records = records.slice(numHeaderRows);
+    records.unshift(colTitles);
   }
 
   function toCSV(arr) {
     var output = "";
     arr.forEach((o, i) => {
       o.forEach((p, j) => {
-        p = p.trim().replaceAll("\n", "\\n");
+        p = (typeof p == "string" ? p : p.textContent)
+          .trim()
+          .replaceAll("\n", "\\n");
         output += `"${p}"`;
         if (j < o.length - 1) {
           output += ",";
