@@ -3,7 +3,8 @@ const CONFIG = {};
 export { CONFIG };
 export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
 
-export { default as quickjs } from "../quickjs-module.js";
+export { execInSandbox } from "../../js-sandbox/mod.js";
+// export { default as quickjs } from "../quickjs-module.js";
 import * as jsdom from "../jsdom-module.js";
 
 class DOMParser {

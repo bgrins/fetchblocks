@@ -4,15 +4,19 @@ import {
   DOMParser,
   builtinsString,
   nanoid,
-  quickjs,
+  execInSandbox,
 } from "./deps.js";
+
+// import * as builtins1 from "./builtins/builtins-bundle-module.js";
+// console.log(builtins1.jmespath({a: 1}, "a"));
+// console.log(builtinsString);
 
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER =
   typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
 
 if (typeof CustomEvent == "undefined") {
-  // node:
+  // Node:
   global.CustomEvent = class CustomEvent extends Event {
     constructor(message, data) {
       super(message, data);
@@ -22,10 +26,17 @@ if (typeof CustomEvent == "undefined") {
 }
 
 export function jsEval(str, input, options) {
-  return quickjs.executeCodeInSandbox(str, input, options, builtinsString);
+  return execInSandbox(str, {
+    verbose: true,
+    exposed: {
+      input,
+      options,
+    },
+    header: builtinsString,
+  });
   // TODO: expose a debugging only mode that does normal eval:
-  // let fn = new Function("input", "options", builtinsString + str);
-  // return fn(input, options);
+  // let fn = new Function("obj", builtinsString + str);
+  // return fn({input, options});
 }
 
 function textIsJSON(text) {
@@ -679,7 +690,7 @@ class fetchblock extends EventTarget {
         if (!incomingValue) {
           let lastStep = plan[plan.currentStep - 1];
           incomingValue = lastStep.stepValue;
-          console.log("INCOMING VALUE", lastStep)
+          console.log("INCOMING VALUE", lastStep);
         }
         let transform = thisStep;
         if (!builtins[transform.type]) {

@@ -1,10 +1,4 @@
 declare global {
-    interface Error {
-        cause?: any;
-    }
-}
-export {};
-declare global {
     interface Object {
         /**
          * Determines whether an object has a property with the specified name.
@@ -12,6 +6,12 @@ declare global {
          * @param v A property name.
          */
         hasOwn(o: object, v: PropertyKey): boolean;
+    }
+}
+export {};
+declare global {
+    interface Error {
+        cause?: any;
     }
 }
 export {};

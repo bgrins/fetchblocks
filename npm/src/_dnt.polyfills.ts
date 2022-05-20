@@ -1,10 +1,3 @@
-declare global {
-  interface Error {
-    cause?: any;
-  }
-}
-
-export {};
 // https://github.com/tc39/proposal-accessible-object-hasownproperty/blob/main/polyfill.js
 if (!Object.hasOwn) {
   Object.defineProperty(Object, "hasOwn", {
@@ -28,6 +21,13 @@ declare global {
      * @param v A property name.
      */
     hasOwn(o: object, v: PropertyKey): boolean;
+  }
+}
+
+export {};
+declare global {
+  interface Error {
+    cause?: any;
   }
 }
 

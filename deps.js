@@ -3,7 +3,7 @@ export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid
 import jmespath from "https://esm.sh/jmespath";
 export { builtinsString } from "./builtins/builtins-bundle-string.js";
 
-export { default as quickjs } from "./quickjs-module.js";
+export {execInSandbox } from "../js-sandbox/mod.js"
 
 let CONFIG = configSync();
 

@@ -50,72 +50,61 @@ fetchblocks.env.set("NOTION_TOKEN", {
   allowedOrigins: ["https://api.notion.com"],
 });
 
-Deno.test("fetchblocks - outerhtml", async () => {
-  let document = new DOMParser().parseFromString(
-    Deno.readTextFileSync("./testdata/list-of-states-outerhtml.html"),
-    "text/html"
-  );
-
-  // let dom = new jsdom.JSDOM(outerHTML);
-  // let document =
-  // Todo: handle complicatd header colspan/rowspan like wikipedia has
-  let includeHeaders = false;
-  var table = document.querySelector("table");
-  var rows = [];
-  if (includeHeaders) {
-    rows = rows.concat([...table.querySelectorAll("thead tr")]);
-  }
-  var rows = rows.concat([...table.querySelectorAll("tbody tr")]);
-  var records = rows.map((row) => []);
-
-  for (var i = 0; i < rows.length; i++) {
-    var row = rows[i];
-    var cells = row.querySelectorAll("td, th");
-    var currentCellIndex = 0;
-    cells.forEach((cell, j) => {
-      records[i][currentCellIndex] = cell.textContent;
-      if (cell.rowSpan > 1) {
-        for (var z = 1; z < cell.rowSpan; z++) {
-          records[i + z][j] = cell.textContent;
-        }
-      }
-      if (cell.colSpan > 1) {
-        for (var z = 1; z < cell.colSpan; z++) {
-          records[i][j + z] = cell.textContent;
-        }
-      }
-      currentCellIndex += cell.colSpan || 1;
-    });
-  }
-
-  function toCSV(arr) {
-    var output = "";
-    arr.forEach((o, i) => {
-      o.forEach((p, j) => {
-        p = p.trim().replaceAll("\n", "\\n");
-        output += `"${p}"`;
-        if (j < o.length - 1) {
-          output += ",";
-        }
-      });
-      output += "\n";
-    });
-    return output;
-  }
-
-  var csv = toCSV(records);
-  console.log(csv);
-
-  Deno.writeTextFileSync(
-    "./testdata/list-of-states-outerhtml.csv",
-    csv.split("\n").join("\n")
-  );
-
-  // console.log("outerhtml builtin", dom);
-});
 Deno.test("fetchblocks - builtins", async () => {
   // Directly test builtin functions. For now this is done by essentially eval'ing
   // but the intention here is that this will be wasmboxed
+
+  assertEquals(await jsEval("return 1+1"), 2);
+  // assertEquals(
+  //   await jsEval(
+  //     `
+  // export default async function({input, options}) {
+  //   console.log(input, options, await builtins.jmespath({a : 4}, "a"));
+  //   const r = builtins.jmespath(input, options);
+  //   console.log(r)
+  //   return r;
+  // }
+  // `,
+  //     { a: 4 },
+  //     "a"
+  //   ),
+  //   4
+  // );
+  // return;
+  assertEquals(
+    await jsEval(
+      `
+    import jmespath from "https://cdn.skypack.dev/jmespath";
+    console.log(jmespath);
+    console.log(jmespath.search({a: 100}, "a"));
+    export default function({input, options}) {
+      return jmespath.search(input, options);
+    }
+    `,
+      { a: 4 },
+      "a"
+    ),
+    4
+  );
+  assertEquals(
+    await jsEval(
+      `
+    import jmespath from "https://cdn.skypack.dev/jmespath";
+    import * as marked from "https://esm.sh/marked/";
+    export default function() { return jmespath.search(marked.lexer("# hi"), "[0].tokens"); }
+    `,
+      { a: 4 },
+      "a",
+      true
+    ),
+    [
+      {
+        raw: "hi",
+        text: "hi",
+        type: "text",
+      },
+    ]
+  );
 
   assertEquals(
     await jsEval("return builtins.jmespath(input, options)", { a: 1 }, "a"),

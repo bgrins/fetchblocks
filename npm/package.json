@@ -1,7 +1,7 @@
 {
-  "module": "./esm/mod.js",
-  "main": "./script/mod.js",
-  "types": "./types/mod.js",
+  "module": "./esm/fetchblocks/mod.js",
+  "main": "./script/fetchblocks/mod.js",
+  "types": "./types/fetchblocks/mod.js",
   "name": "@bgrins/fetchblocks",
   "version": "0.1.4",
   "description": "Experimental - library cross compiled to node/web/deno",
@@ -13,9 +13,9 @@
   },
   "exports": {
     ".": {
-      "import": "./esm/mod.js",
-      "require": "./script/mod.js",
-      "types": "./types/mod.js"
+      "import": "./esm/fetchblocks/mod.js",
+      "require": "./script/fetchblocks/mod.js",
+      "types": "./types/fetchblocks/mod.js"
     }
   },
   "scripts": {

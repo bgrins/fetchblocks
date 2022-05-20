@@ -1966,7 +1966,7 @@
     jmespath.search;
     jmespath.strictDeepEqual;
     jmespath.tokenize;
-    async function transform1(data, options, functions) {
+    function transform1(data, options, functions) {
         if (typeof data != "object") {
             throw new Error("Can't use jmespath on non object: " + typeof data);
         }

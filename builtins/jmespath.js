@@ -2,7 +2,7 @@ import jmespath from "https://cdn.skypack.dev/jmespath";
 
 // TODO just export all of jmespath so it's easier to use from non builtins
 
-export async function transform(data, options, functions) {
+export function transform(data, options, functions) {
   if (typeof data != "object") {
     throw new Error("Can't use jmespath on non object: " + typeof data);
   }

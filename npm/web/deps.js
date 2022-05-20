@@ -18,7 +18,7 @@ class DOMParser {
 
 export { DOMParser };
 
-export { builtinsString } from "../builtins/builtins-bundle-string.js";
+export { builtinsString } from "../builtins/builtins-bundle-module-string.js";
 
 // https://github.com/ai/nanoid/:
 export let nanoid = (t = 21) =>

@@ -1,10 +1,5 @@
 id,title,url,reactions,created_at,updated_at,user,labels
 1236099238,Streams for the Web Cryptography API,https://api.github.com/repos/mozilla/standards-positions/issues/637,0,2022-05-14T19:01:51Z,2022-05-16T10:40:52Z,tniessen,w3c-cg
-674526358,Scoped Custom Elements Registries,https://api.github.com/repos/mozilla/standards-positions/issues/424,2,2020-08-06T18:45:37Z,2021-03-12T07:58:43Z,leobalter,proposal
-673969491,Payment Handler API (defer),https://api.github.com/repos/mozilla/standards-positions/issues/420,0,2020-08-06T02:36:44Z,2021-01-15T11:27:04Z,marcoscaceres,
-673229386,CSS Images 4: cross-fade(),https://api.github.com/repos/mozilla/standards-positions/issues/417,0,2020-08-05T03:42:40Z,2021-01-04T09:32:20Z,tantek,w3c
-668744929,Constant bitrate audio encoding with MediaRecorder,https://api.github.com/repos/mozilla/standards-positions/issues/414,0,2020-07-30T13:47:07Z,2020-08-04T14:27:19Z,simoncent,w3c
-668134113,Make system color keywords compute to themselves,https://api.github.com/repos/mozilla/standards-positions/issues/413,0,2020-07-29T20:37:21Z,2020-10-05T21:02:30Z,kbabbitt,w3c
 667970382,WebXR Layers API,https://api.github.com/repos/mozilla/standards-positions/issues/412,0,2020-07-29T16:19:51Z,2020-08-05T08:39:22Z,MortimerGoro,w3c
 667251335,"Pointer Events, azimuthAngle and altitudeAngle",https://api.github.com/repos/mozilla/standards-positions/issues/411,0,2020-07-28T17:38:45Z,2020-08-05T08:29:44Z,liviutinta,w3c
 666791203,"add Media Queries Level 5: prefers-reduced-motion, prefers-contrast, …",https://api.github.com/repos/mozilla/standards-positions/issues/410,0,2020-07-28T05:54:41Z,2021-01-15T11:27:03Z,tantek,
@@ -45,7 +40,7 @@ id,title,url,reactions,created_at,updated_at,user,labels
 441863584,Pan/Tilt addition to MediaStream Image Capture,https://api.github.com/repos/mozilla/standards-positions/issues/159,0,2019-05-08T18:14:04Z,2019-05-08T18:54:30Z,dbaron,w3c
 437887640,isInputPending API,https://api.github.com/repos/mozilla/standards-positions/issues/155,2,2019-04-27T00:40:31Z,2020-10-13T02:03:17Z,tantek,w3c-cg
 436928257,SMS OTP Retriever / SMS verification / Sign up API,https://api.github.com/repos/mozilla/standards-positions/issues/152,2,2019-04-24T22:07:58Z,2020-06-23T02:15:57Z,dbaron,w3c-cg
-421007178,JavaScript Standard Library Proposal (Builtin Modules),https://api.github.com/repos/mozilla/standards-positions/issues/147,0,2019-03-14T13:06:17Z,2019-07-19T15:31:40Z,annevk,ecma
+421007178,JavaScript Standard Library Proposal (Builtin Modules),https://api.github.com/repos/mozilla/standards-positions/issues/147,0,2019-03-14T13:06:17Z,2022-05-20T10:06:31Z,annevk,ecma|proposal appears stale
 404743314,content-visibility API,https://api.github.com/repos/mozilla/standards-positions/issues/135,4,2019-01-30T12:15:07Z,2020-08-06T16:11:09Z,victorporof,w3c-cg|under review
 390504381,Media timed events API for MPEG DASH MPD,https://api.github.com/repos/mozilla/standards-positions/issues/122,0,2018-12-13T03:37:11Z,2018-12-13T04:38:41Z,marcoscaceres,w3c-cg
 387928460,Container Queries,https://api.github.com/repos/mozilla/standards-positions/issues/118,3,2018-12-05T20:18:47Z,2022-02-09T20:16:56Z,dbaron,w3c-cg
@@ -56,7 +51,6 @@ id,title,url,reactions,created_at,updated_at,user,labels
 321669083,RFP: Clipboard API,https://api.github.com/repos/mozilla/standards-positions/issues/89,1,2018-05-09T18:02:29Z,2021-09-29T12:55:57Z,mconca,w3c
 319486557,Page Lifecycle,https://api.github.com/repos/mozilla/standards-positions/issues/87,1,2018-05-02T09:53:16Z,2021-01-30T08:56:41Z,smaug----,w3c-cg
 313994723,HTML: find in page API,https://api.github.com/repos/mozilla/standards-positions/issues/83,3,2018-04-13T07:20:20Z,2019-11-19T14:36:55Z,annevk,whatwg|proposal appears stale
-306569053,RFP: Improving Ergonomics Of Events With Observable (WHATWG),https://api.github.com/repos/mozilla/standards-positions/issues/76,7,2018-03-19T17:55:42Z,2019-11-19T13:56:50Z,benlesh,whatwg|proposal appears stale
 300820600,RFP: WebMIDI,https://api.github.com/repos/mozilla/standards-positions/issues/58,10,2018-02-27T22:38:57Z,2019-10-01T02:30:39Z,qdot,w3c
 273090156,RFP: Gamepad Haptics,https://api.github.com/repos/mozilla/standards-positions/issues/49,4,2017-11-10T23:35:47Z,2021-07-13T03:59:41Z,nondebug,w3c-cg|proposal appears stale
 261184780,RFP: IndexedDB Observers,https://api.github.com/repos/mozilla/standards-positions/issues/32,0,2017-09-28T03:46:02Z,2019-11-19T14:07:17Z,marcoscaceres,w3c-cg|proposal appears stale

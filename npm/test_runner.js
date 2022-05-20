@@ -2,7 +2,7 @@ const chalk = require("chalk");
 const process = require("process");
 const { testDefinitions } = require("@deno/shim-deno/test-internals");
 const filePaths = [
-    "test.js",
+    "fetchblocks/test.js",
 ];
 async function main() {
     const testContext = {
