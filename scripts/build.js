@@ -3,9 +3,7 @@
 import { build, emptyDir } from "https://deno.land/x/dnt/mod.ts";
 import { ensureDir, copySync } from "https://deno.land/std@0.78.0/fs/mod.ts";
 
-import { bundleBuiltins, bundleWeb } from "./tasks.js";
-
-await bundleBuiltins();
+import { bundleWeb } from "./tasks.js";
 
 await emptyDir("./npm");
 await ensureDir("./npm/script"); // void

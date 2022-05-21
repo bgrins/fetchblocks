@@ -1,30 +1,20 @@
-import {
-  Liquid,
-  DOMParser,
-  builtinsString,
-  nanoid,
-  execInSandbox,
-} from "./deps.js";
+import { Liquid, DOMParser, nanoid, execInSandbox } from "./deps.js";
 
 // Todo: change this to a remote endpoint - env USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT
 const UTILS_IMPORT_BASE = import.meta.url;
 function getURLForUtil(util) {
   const mappings = {
-    "noop": "./utils/noop.js",
-    "md_to_json": "./utils/md_to_json.js",
-    "jmespath": "./utils/jmespath.js",
-    "csv_to_json": "./utils/csv_to_json.js",
-    "json_to_csv": "./utils/json_to_csv.js",
-  }
+    noop: "./utils/noop.js",
+    md_to_json: "./utils/md_to_json.js",
+    jmespath: "./utils/jmespath.js",
+    csv_to_json: "./utils/csv_to_json.js",
+    json_to_csv: "./utils/json_to_csv.js",
+  };
 
   if (mappings[util]) {
     return new URL(mappings[util], UTILS_IMPORT_BASE);
   }
 }
-
-// import * as builtins1 from "./builtins/builtins-bundle-module.js";
-// console.log(builtins1.jmespath({a: 1}, "a"));
-// console.log(builtinsString);
 
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER =
@@ -55,10 +45,9 @@ export function jsEval(
     },
     // Todo: configure based on env:
     allowFileModuleLoads: true,
-    // header: builtinsString,
   });
   // TODO: expose a debugging only mode that does normal eval:
-  // let fn = new Function("obj", builtinsString + str);
+  // let fn = new Function("obj", str);
   // return fn({input, options});
 }
 
@@ -70,68 +59,14 @@ function textIsJSON(text) {
   return false;
 }
 
-const builtins = {
-  async log(data) {
-    console.log(data);
-    return data;
-  },
-  // async jmespath(data, transform) {
-  //   console.log("Inside builtin", data, transform);
-  //   return jsEval(
-  //     "return builtins.jmespath(input, options);",
-  //     data,
-  //     transform.value
-  //   );
-  // },
-  // async md_to_json(data, transform) {
-  //   return jsEval(
-  //     "return builtins.md_to_json(input, options)",
-  //     data,
-  //     transform
-  //   );
-  // },
-  // async csv_to_json(data, transform) {
-  //   return jsEval(
-  //     "return builtins.csv_to_json(input, options)",
-  //     data,
-  //     transform
-  //   );
-  // },
-  // async json_to_csv(data, transform) {
-  //   return jsEval(
-  //     "return builtins.json_to_csv(input, options)",
-  //     data,
-  //     transform
-  //   );
-  // },
-  async script(data, transform) {
-    if (transform.src) {
-      console.log(`
-      import mod from "${transform.src}";
-      export default function(opts) {
-        return mod(opts);
-      }
-    `);
-      return jsEval(
-        `
-        import mod from "${transform.src}";
-        export default function(opts) {
-          return mod(opts);
-        }
-      `,
-        data,
-        transform
-      );
-      // TODO: Parse out the module to get the function body. Or get the new interpreter
-      // to just handle and call modules
-      // throw new Error(
-      //   `Remote module load not implemented yet - ${transform.src}`
-      // );
-    } else if (transform.value) {
-      return jsEval(transform.value, data, transform);
-    }
-  },
-};
+export function getScriptForSrc(src) {
+  return `
+  import mod from "${src}";
+  export default function(opts) {
+    return mod(opts);
+  }
+`;
+}
 
 const networkLoaders = new Map();
 
@@ -730,19 +665,20 @@ class fetchblock extends EventTarget {
           incomingValue = lastStep.stepValue;
         }
         let transform = thisStep;
+        let scriptToRun;
         if (getURLForUtil(transform.type)) {
           transform.src = getURLForUtil(transform.type).toString();
-          transform.type = "script";
         }
-        if (!builtins[transform.type]) {
-          throw new Error(`Unrecognized builtin: ${transform.type}`);
+
+        if (transform.src) {
+          scriptToRun = getScriptForSrc(transform.src);
+        } else if (transform.value) {
+          scriptToRun = transform.value;
+        } else {
+          throw new Error("No script detected in " + JSON.stringify(transform));
         }
-        stepValue = await builtins[transform.type].call(
-          null,
-          incomingValue,
-          transform,
-          options
-        );
+
+        stepValue = await jsEval(scriptToRun, incomingValue, transform);
       }
       thisStep.stepValue = stepValue;
       plan.currentStep = plan.currentStep + 1;

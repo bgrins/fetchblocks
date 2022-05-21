@@ -4,7 +4,7 @@ import {
   assert,
 } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
-import { fetchblock, fetchblocks, jsEval } from "./mod.js";
+import { fetchblock, fetchblocks, jsEval, getScriptForSrc } from "./mod.js";
 import { DOMParser } from "./deps.js";
 import { isDeno, isNode } from "https://deno.land/x/which_runtime/mod.ts";
 import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
@@ -114,66 +114,53 @@ Deno.test("fetchblocks - builtins", async () => {
     ]
   );
 
+  function getScriptForTest(relativePath) {
+    return getScriptForSrc(new URL(relativePath, import.meta.url));
+  }
 
   // Todo: instrument the actual mapping to these modules to be more directly testable
-  // assertEquals(
-  //   await jsEval("return builtins.jmespath(input, options)", { a: 1 }, "a"),
-  //   1
-  // );
+  assertEquals(
+    await jsEval(
+      getScriptForTest("./utils/jmespath.js"),
+      { a: 1 },
+      { value: "a" }
+    ),
+    1
+  );
 
-  // assertEquals(await jsEval("return builtins.noop(input, options)", { a: 1 }), {
-  //   a: 1,
-  // });
+  assertEquals(await jsEval(getScriptForTest("./utils/noop.js"), { a: 1 }), {
+    a: 1,
+  });
 
-  // assertEquals(
-  //   await jsEval(
-  //     "return builtins.csv_to_json(input, options)",
-  //     "foo,bar,baz",
-  //     {}
-  //   ),
-  //   {
-  //     data: [["foo", "bar", "baz"]],
-  //     errors: [],
-  //     meta: {
-  //       aborted: false,
-  //       cursor: 11,
-  //       delimiter: ",",
-  //       linebreak: "\n",
-  //       truncated: false,
-  //     },
-  //   }
-  // );
+  assertEquals(
+    await jsEval(getScriptForTest("./utils/csv_to_json.js"), "foo,bar,baz"),
+    [["foo", "bar", "baz"]]
+  );
 
-  // assertEquals(
-  //   await jsEval(
-  //     "return builtins.json_to_csv(input, options)",
-  //     [["foo", "bar", "baz"]],
-  //     {}
-  //   ),
-  //   "foo,bar,baz"
-  // );
-  // // console.log(csv_to_json());
-  // // console.log(json_to_csv([["foo", "bar", "baz"]]));
-
-  // // TODO: shouldn't this assertEquals? The assertion doesn't show a diff but still fails
-  // assertObjectMatch(
-  //   await jsEval("return builtins.md_to_json(input, options)", "# header"),
-  //   [
-  //     {
-  //       depth: 1,
-  //       raw: "# header",
-  //       text: "header",
-  //       tokens: [
-  //         {
-  //           raw: "header",
-  //           text: "header",
-  //           type: "text",
-  //         },
-  //       ],
-  //       type: "heading",
-  //     },
-  //   ]
-  // );
+  assertEquals(
+    await jsEval(getScriptForTest("./utils/json_to_csv.js"), [
+      ["foo", "bar", "baz"],
+    ]),
+    "foo,bar,baz"
+  );
+  assertEquals(
+    await jsEval(getScriptForTest("./utils/md_to_json.js"), "# header"),
+    [
+      {
+        depth: 1,
+        raw: "# header",
+        text: "header",
+        tokens: [
+          {
+            raw: "header",
+            text: "header",
+            type: "text",
+          },
+        ],
+        type: "heading",
+      },
+    ]
+  );
 });
 
 Deno.test("fetchblocks - templating", async () => {
@@ -706,7 +693,7 @@ Deno.test("md to csv", async () => {
   );
   ret = await fetchblocks.run(
     [
-       // todo: just allow the stubresponse here instead of requiring a top level request
+      // todo: just allow the stubresponse here instead of requiring a top level request
       { type: "csv_to_json" },
       // { type: "slice"},
     ],

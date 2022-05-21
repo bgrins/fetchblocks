@@ -1,41 +1,10 @@
 // TODO: Bundle the node_deps with browserify/esbuild/etc
 // import { emit, bundle } from "https://deno.land/x/emit/mod.ts";
 
-export async function bundleBuiltins() {
-  const { files, diagnostics } = await Deno.emit(
-    new URL("../builtins/exports.js", import.meta.url),
-    {
-      bundle: "classic",
-      compilerOptions: {
-        // checkJs: true,
-      },
-    }
-  );
-
-  console.log(files, diagnostics);
-
-  let script = files["deno:///bundle.js"];
-  Deno.writeTextFileSync("./builtins/builtins-bundle-iife.js", script);
-
-  // This is weird, but once we can properly wasmbox the srcipts we can probably have it
-  // just load the builtin modules as esm. For now export the iife as a global since we will just concat the
-  // code to eval.
-  let iifeStart = script.indexOf("(function() {");
-  script =
-    script.substring(0, iifeStart) +
-    "const builtins = " +
-    script.substring(iifeStart, script.length);
-
-  Deno.writeTextFileSync(
-    "./builtins/builtins-bundle-string.js",
-    "const builtinsString = " +
-      JSON.stringify(script) +
-      "; export { builtinsString }"
-  );
-}
-
 export async function bundleWeb() {
+  Deno.copyFileSync("mod.js", "web/mod.js");
   await (async () => {
+    // The web/ folder has a separate set of deps to make a web-compatible ESM
     const { files, diagnostics } = await Deno.emit(
       new URL("../web/mod.js", import.meta.url),
       {
