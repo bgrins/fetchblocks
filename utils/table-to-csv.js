@@ -167,7 +167,7 @@ function toJSON(table, options = {}) {
   return records;
 }
 
-export default async function transform(input, options = {}) {
+export default function transform(input, options = {}) {
   let tableSelector = options.table || "table";
 
   let document = new DOMParser().parseFromString(input, "text/html");
@@ -183,7 +183,7 @@ export default async function transform(input, options = {}) {
 }
 
 // console.log(
-//   await transform(
+//   transform(
 //     "<table><thead><tr><td>hi</td><td>there</td></tr></thead><tr><td>0</td><td>1</td></tr></table>",
 //     {
 //       includeheaders: true,

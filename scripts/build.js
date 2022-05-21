@@ -15,6 +15,8 @@ await Deno.copyFile(".env", "npm/esm/.env");
 await Deno.copyFile(".env", "npm/script/.env");
 await copySync("testdata", "npm/src/testdata");
 await copySync("testdata", "npm/script/testdata");
+await copySync("utils", "npm/script/fetchblocks/utils");
+await copySync("utils", "npm/esm/fetchblocks/utils");
 
 await build({
   entryPoints: ["./mod.js"],

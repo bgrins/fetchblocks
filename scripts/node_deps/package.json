@@ -2,6 +2,11 @@
   "devDependencies": {
     "browserify": "^17.0.0",
     "esbuild": "^0.14.39",
-    "jsdom": "^19.0.0"
+    "jsdom": "^19.0.0",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2"
+  },
+  "dependencies": {
+    "os-browserify": "^0.3.0"
   }
 }
