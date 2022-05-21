@@ -19,6 +19,9 @@ class DOMParser {
 
 export { DOMParser };
 
+// Todo: ship these on localhost or just bundle them up and ship them as importMap to eval for web
+export const UTILS_IMPORT_BASE = "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
+
 // https://github.com/ai/nanoid/:
 export let nanoid = (t = 21) =>
   crypto

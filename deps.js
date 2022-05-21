@@ -2,7 +2,20 @@ export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid
 import jmespath from "https://esm.sh/jmespath";
 
 // export { execInSandbox } from "https://raw.githubusercontent.com/bgrins/js-sandbox/main/mod.js";
-export {execInSandbox } from "../js-sandbox/mod.js";
+export { execInSandbox } from "../js-sandbox/mod.js";
+
+import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
+
+const CONFIG = configSync();
+
+console.log(CONFIG)
+
+// Set
+// USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT=true
+// Todo: change this to a remote endpoint - env USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT
+export const UTILS_IMPORT_BASE = CONFIG.USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT === "true"
+  ? import.meta.url
+  : "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
 
 import * as _jsdom from "./jsdom-module.js";
 const jsdom = _jsdom.default;

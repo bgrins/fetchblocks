@@ -1,7 +1,6 @@
-import { Liquid, DOMParser, nanoid, execInSandbox } from "./deps.js";
+import { Liquid, DOMParser, nanoid, execInSandbox, UTILS_IMPORT_BASE } from "./deps.js";
 
-// Todo: change this to a remote endpoint - env USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT
-const UTILS_IMPORT_BASE = import.meta.url;
+console.log(UTILS_IMPORT_BASE);
 function getURLForUtil(util) {
   const mappings = {
     noop: "./utils/noop.js",
