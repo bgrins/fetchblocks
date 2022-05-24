@@ -1,5 +1,6 @@
-// deno run --unstable -A scripts/build.js 0.1.3
-
+// deno run --unstable -A scripts/build.js 0.1.4
+// > deno --version
+//    deno 1.21.3 (release, aarch64-apple-darwin)
 import { build, emptyDir } from "https://deno.land/x/dnt/mod.ts";
 import { ensureDir, copySync } from "https://deno.land/std@0.78.0/fs/mod.ts";
 
@@ -27,9 +28,13 @@ await build({
     undici: true,
   },
   mappings: {
-    "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js": {
+    "https://esm.sh/liquidjs": {
       name: "liquidjs",
       version: "^9.37.0",
+    },
+    "https://esm.sh/linkedom": {
+      name: "linkedom",
+      version: "^0.3.5",
     },
   },
   package: {

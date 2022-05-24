@@ -2,15 +2,6 @@ src/
 esm/fetchblocks/test.js
 script/fetchblocks/test.js
 types/fetchblocks/test.js
-esm/fetchblocks/utils/table-to-csv.js
-script/fetchblocks/utils/table-to-csv.js
-types/fetchblocks/utils/table-to-csv.js
-esm/deps/deno.land/std@0.137.0/dotenv/mod.js
-script/deps/deno.land/std@0.137.0/dotenv/mod.js
-types/deps/deno.land/std@0.137.0/dotenv/mod.d.ts
-esm/deps/deno.land/std@0.137.0/dotenv/util.js
-script/deps/deno.land/std@0.137.0/dotenv/util.js
-types/deps/deno.land/std@0.137.0/dotenv/util.d.ts
 esm/deps/deno.land/std@0.137.0/fmt/colors.js
 script/deps/deno.land/std@0.137.0/fmt/colors.js
 types/deps/deno.land/std@0.137.0/fmt/colors.d.ts

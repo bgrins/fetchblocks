@@ -8,7 +8,7 @@ import { fetchblock, fetchblocks, jsEval, getScriptForSrc } from "./mod.js";
 import { DOMParser } from "./deps.js";
 import { isDeno, isNode } from "https://deno.land/x/which_runtime/mod.ts";
 import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
-import table_to_csv from "./utils/table-to-csv.js";
+// import table_to_csv from "./utils/table_to_csv.js";
 
 const CONFIG = configSync();
 
@@ -59,33 +59,34 @@ fetchblocks.env.set("GITHUB_TOKEN", {
 });
 
 Deno.test("fetchblocks - builtins", async () => {
-  // Directly test builtin functions. For now this is done by essentially eval'ing
-  // but the intention here is that this will be wasmboxed
-
   assertEquals(await jsEval("return 1+1"), 2);
   // assertEquals(
-  //   await jsEval(
-  //     `
-  // export default async function({input, options}) {
-  //   console.log(input, options, await builtins.jmespath({a : 4}, "a"));
-  //   const r = builtins.jmespath(input, options);
-  //   console.log(r)
-  //   return r;
-  // }
-  // `,
-  //     { a: 4 },
-  //     "a"
-  //   ),
-  //   4
+  //   await table_to_csv({ input: "<table><tr><td>1</td><td>2</td>" }),
+  //   '"1","2"\n'
   // );
-  // return;
+
+  assertEquals(
+    await jsEval(
+      getScriptForTest("./utils/table_to_csv.js"),
+      "<table class='main'><tr><td>1</td><td>2</td></table>"
+    ),
+    '"1","2"\n'
+  );
+  assertEquals(
+    await jsEval(
+      getScriptForTest("./utils/table_to_csv.js"),
+      "<table><tr><td>1</td><td>2</td></table><table class='secondary'><tr><td>3</td><td>4</td></table>",
+      { tableSelector: "table.secondary" }
+    ),
+    '"3","4"\n'
+  );
+
   assertEquals(
     await jsEval(
       `
     import jmespath from "https://cdn.skypack.dev/jmespath";
-    console.log(jmespath);
-    console.log(jmespath.search({a: 100}, "a"));
     export default function({input, options}) {
+      console.log(input, options, jmespath.search(input, options));
       return jmespath.search(input, options);
     }
     `,
@@ -262,28 +263,6 @@ Deno.test("fetchblocks - jmespath", async () => {
   // );
 });
 Deno.test("fetchblocks - transform src", async () => {
-  // assertEquals(table_to_csv("<table><tr><td>1</td><td>2</td>"), '"1","2"\n');
-
-  //   assertEquals(
-  //     await jsEval(
-  //       `
-  //   import mod from "table-to-csv.js";
-  //   export default function(opts) {
-  //     return mod(opts);
-  //   }
-  // `,
-  //       "<table><tr><td>1</td><td>2</td>",
-  //       {},
-  //       {
-  //         importMap: {
-  //           "table-to-csv.js": Deno.readTextFileSync("./utils/table-to-csv.js"),
-  //           "../jsdom-module.js": Deno.readTextFileSync("./jsdom-module.js"),
-  //         },
-  //       }
-  //     ),
-  //     "asf"
-  //   );
-
   assertEquals(
     await fetchblocks.run(
       [

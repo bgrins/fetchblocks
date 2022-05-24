@@ -1,4 +1,5 @@
-export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
+// export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
+export { Liquid } from "https://esm.sh/liquidjs";
 import jmespath from "https://esm.sh/jmespath";
 
 // export { execInSandbox } from "https://raw.githubusercontent.com/bgrins/js-sandbox/main/mod.js";
@@ -17,19 +18,11 @@ export const UTILS_IMPORT_BASE = CONFIG.USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT ===
   ? import.meta.url
   : "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
 
-import * as _jsdom from "./jsdom-module.js";
-const jsdom = _jsdom.default;
-class DOMParser {
-  parseFromString(string, mimeType) {
-    // TODO: if we exposed this from the browserified thing instead could we tree shake and make this
-    // smaller
-    const { window: jsdomwindow } = new jsdom.JSDOM(``);
-    const jsdomparser = new jsdomwindow.DOMParser();
-    return jsdomparser.parseFromString(string, mimeType);
-  }
-}
 
-export { DOMParser };
+// export { DOMParser } from "https://unpkg.com/linkedom/worker";
+export { DOMParser } from "https://esm.sh/linkedom";
+// export { DOMParser } from "https://esm.sh/linkedom?target=es2022&bundle";
+
 export { jmespath };
 
 // https://github.com/ai/nanoid/:

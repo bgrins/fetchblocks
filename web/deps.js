@@ -4,20 +4,10 @@ export { CONFIG };
 export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
 
 export { execInSandbox } from "../../js-sandbox/mod.js";
-// export { default as quickjs } from "../quickjs-module.js";
-import * as jsdom from "../jsdom-module.js";
+// export { DOMParser } from "https://unpkg.com/linkedom/worker";
 
-class DOMParser {
-  constructor() {
-    const { window } = new jsdom.default.JSDOM(``);
-    this._parser = new window.DOMParser();
-  }
-  parseFromString(string, mimeType) {
-    return this._parser.parseFromString(string, mimeType);
-  }
-}
-
-export { DOMParser };
+export { DOMParser } from "https://esm.sh/linkedom";
+// export { DOMParser } from "https://esm.sh/linkedom?target=es2022&bundle";
 
 // Todo: ship these on localhost or just bundle them up and ship them as importMap to eval for web
 export const UTILS_IMPORT_BASE = "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
