@@ -48,12 +48,13 @@ import { fetchblocks } from "@bgrins/fetchblocks"
 */
 
 // deno test --watch --allow-net --allow-read
+const ENV = new Map();
 
-fetchblocks.env.set("NOTION_TOKEN", {
+ENV.set("NOTION_TOKEN", {
   value: CONFIG["NOTION_TOKEN"],
   allowedOrigins: ["https://api.notion.com"],
 });
-fetchblocks.env.set("GITHUB_TOKEN", {
+ENV.set("GITHUB_TOKEN", {
   value: CONFIG["GITHUB_TOKEN"],
   allowedOrigins: ["https://api.github.com"],
 });
@@ -334,7 +335,7 @@ Deno.test("fetchblocks - notion", async () => {
   let ret = await block.run({
     dataset: {
       databaseid: "c8892e5095404ed89ce0a4807e050d0f",
-      bearer: fetchblocks.env.get("NOTION_TOKEN"),
+      bearer: ENV.get("NOTION_TOKEN"),
       jmespath:
         'results[*].{id: id, due: properties."Date Created".created_time, content: properties.Name.title[0].plain_text}',
     },
@@ -365,7 +366,7 @@ Deno.test("fetchblocks - notion", async () => {
 });
 
 Deno.test("fetchblocks throws on disallowed origin", async () => {
-  fetchblocks.env.set("DISALLOWED_USE", {
+  ENV.set("DISALLOWED_USE", {
     value: "test",
     // Throw an exception if this is attempted to be used on another domain
     allowedOrigins: ["https://example.com"],
@@ -373,7 +374,7 @@ Deno.test("fetchblocks throws on disallowed origin", async () => {
   try {
     await fetchblocks.run([{ resource: "http://example.com/{{token}}" }], {
       dataset: {
-        token: fetchblocks.env.get("DISALLOWED_USE"),
+        token: ENV.get("DISALLOWED_USE"),
       },
     });
     assert(false, "Should have thrown");
@@ -792,7 +793,7 @@ Deno.test("graphql", async () => {
   //     name } } } } } } } }`,
   //     }),
   //     bearer: {
-  //       value: fetchblocks.env.get("GITHUB_TOKEN"),
+  //       value: ENV.get("GITHUB_TOKEN"),
   //       allowedOrigins: ["https://api.github.com"],
   //     },
   //   },
@@ -835,7 +836,7 @@ Deno.test("gist", async () => {
       states:CLOSED) { edges { node { title url labels(first:5) { edges { node {
       name } } } } } } } }`,
       }),
-      bearer: fetchblocks.env.get("GITHUB_TOKEN"),
+      bearer: ENV.get("GITHUB_TOKEN"),
     },
   });
   assertEquals(ret, {

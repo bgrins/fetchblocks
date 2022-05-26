@@ -7,17 +7,23 @@ import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
 
 // deno run -A cmd.js testdata/blocks/external1.html --dataset foo=bar --dataset bar=baz
 // deno run -A cmd.js testdata/blocks/top-stars.json --dataset num_rows=10
-// deno run --allow-read --allow-net --watch cmd.js ./testdata/blocks/multiple-json.json#n_top_stars_external_reference --dataset num_rows=10
+// deno run -A --watch cmd.js ./testdata/blocks/multiple-json.json#n_top_stars_external_reference --dataset num_rows=10
 
 
 async function main(args) {
   const parsed = parse(args);
   const { format, help, verbose = false, dataset, _ } = parsed;
+  const serve = parsed["serve"];
   const dryRun = parsed["dry-run"];
   const [file] = _;
 
   if (help) {
     console.log("Todo: help text");
+    return;
+  }
+
+  if (serve) {
+    console.log("Todo: Bundled web server with debugger assets");
     return;
   }
 

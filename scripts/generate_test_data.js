@@ -73,7 +73,7 @@ Deno.writeTextFileSync("./testdata/getallmakes.json", JSON.stringify(await vehic
 //       name } } } } } } } }`,
 //         }),
 //         bearer: {
-//           value: fetchblocks.env.get("GITHUB_TOKEN"),
+//           value: CONFIG.get("GITHUB_TOKEN"),
 //           allowedOrigins: ["https://api.github.com"],
 //         },
 //       },

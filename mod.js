@@ -259,8 +259,6 @@ blockLoaders.set("html", {
 const fetchblocks = (() => {
   return {
     blockLoaders,
-    // By default this will read from dotenv. If you want more you can set:
-    env: new Map(),
 
     getLoaderForText(text) {
       let loader;
