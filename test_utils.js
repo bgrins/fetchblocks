@@ -4,13 +4,40 @@ import {
   assert,
 } from "https://deno.land/std@0.137.0/testing/asserts.ts";
 
+import csv_to_json from "./utils/csv_to_json.js";
+import json_to_csv from "./utils/json_to_csv.js";
+import md_to_json from "./utils/md_to_json.js";
+import noop from "./utils/noop.js";
+import jmespath from "./utils/jmespath.js";
 import table_to_csv from "./utils/table_to_csv.js";
 
 const listOfPopularDogBreeds = Deno.readTextFileSync(
   "./testdata/list-of-popular-dog-breeds.html"
 );
 
-Deno.test("fetchblocks - builtins", async () => {
+Deno.test("csv_to_json", async () => {
+  assertEquals(csv_to_json({ input: "1,2" }), [["1", "2"]]);
+});
+Deno.test("json_to_csv", async () => {
+  assertEquals(json_to_csv({ input: [[1, 2]] }), "1,2");
+});
+Deno.test("md_to_json", async () => {
+  let output = md_to_json({ input: "# Hello" });
+  assertEquals(output.length, 1);
+  assertEquals(output[0].text, "Hello");
+  assertEquals(output[0].type, "heading");
+});
+Deno.test("noop", async () => {
+  let input = [1, { a: 2 }, true];
+  assertEquals(noop({ input }), input);
+});
+Deno.test("jmespath", async () => {
+  assertEquals(
+    jmespath({ input: [{ a: 1 }, { a: 2 }], options: { value: "[].a" } }),
+    [1, 2]
+  );
+});
+Deno.test("table_to_csv", async () => {
   assertEquals(
     table_to_csv({
       input: `<table>
@@ -104,8 +131,8 @@ Deno.test("fetchblocks - builtins", async () => {
 "7","Golden Retriever"
 "8","Boxer"
 "9","Jack Russell Terrier"
-"10","German Shorthaired Pointer"`);
-
+"10","German Shorthaired Pointer"`
+  );
 
   assertEquals(
     table_to_csv({

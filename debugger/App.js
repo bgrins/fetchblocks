@@ -49,7 +49,7 @@ const EXAMPLES = [
   { "type": "jmespath", "value": "[?name == \`ASTON MARTIN\`]" }
 ]`,
   },
-  
+
   {
     name: "Watched Repos",
     mode: "application/json",
@@ -73,6 +73,17 @@ const EXAMPLES = [
   </script>
 </fetch-block>
 `,
+  },
+  {
+    name: "Gists",
+    mode: "application/json",
+    content: `{
+       "public_activity": [
+         { "resource": "https://api.github.com/gists/public" },
+         { "type": "script", "value": "return input.map(gist => Object.keys(gist.files).map(key => gist.files[key].filename));" }
+ 
+       ]
+     }`,
   },
   {
     name: "Datasets",
@@ -289,7 +300,7 @@ async function runActiveBlock(activeBlockId) {
     window.block = block;
 
     block.addEventListener("PlanReady", (e) => {
-      console.log("Plan ready", e.detail)
+      console.log("Plan ready", e.detail);
       document.dispatchEvent(
         new CustomEvent("PlanReady", {
           detail: e.detail,

@@ -1,12 +1,6 @@
-// import { DOMParser } from "https://esm.sh/linkedom?target=es2022&bundle";
 import { DOMParser } from "https://unpkg.com/linkedom/worker";
 
-// TODO: go to JSON first
-// TODO: import jsdom
-// TODO: can browserify pull down esm.sh jsdom instead of going the other way?
-
 // Todo: make this a reference block (without being a "builtin" by allowing ESM imports from custom script)
-// Pass jsdom into the sandbox as a builtin
 // Todo: test this using WPT (generating expected results by copy/pasting into sheets)
 // https://wpt.live/html/semantics/tabular-data/
 function toCSV(arr, options = {}) {
