@@ -70,7 +70,7 @@ Deno.test("fetchblocks - builtins", async () => {
       getScriptForTest("./utils/table_to_csv.js"),
       "<table class='main'><tr><td>1</td><td>2</td></table>"
     ),
-    '"1","2"\n'
+    '"1","2"'
   );
   assertEquals(
     await jsEval(
@@ -78,7 +78,7 @@ Deno.test("fetchblocks - builtins", async () => {
       "<table><tr><td>1</td><td>2</td></table><table class='secondary'><tr><td>3</td><td>4</td></table>",
       { tableSelector: "table.secondary" }
     ),
-    '"3","4"\n'
+    '"3","4"'
   );
 
   assertEquals(

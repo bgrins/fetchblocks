@@ -1,18 +1,3 @@
-// import * as _jsdom from "../jsdom-module.js";
-// const jsdom = _jsdom.default;
-
-// class DOMParser {
-//   parseFromString(string, mimeType) {
-//     // TODO: if we exposed this from the browserified thing instead could we tree shake and make this
-//     // smaller
-//     return  jsdom.JSDOM.fragment(string);
-//     // return "foo";
-//     // const { window: jsdomwindow } = new jsdom.JSDOM(``);
-//     // const jsdomparser = new jsdomwindow.DOMParser();
-//     // return jsdomparser.parseFromString(string, mimeType);
-//   }
-// }
-
 // import { DOMParser } from "https://esm.sh/linkedom?target=es2022&bundle";
 import { DOMParser } from "https://unpkg.com/linkedom/worker";
 
@@ -36,35 +21,47 @@ function toCSV(arr, options = {}) {
         output += ",";
       }
     });
-    output += "\n";
+    if (i < arr.length - 1) {
+      output += "\n";
+    }
   });
   return output;
 }
 
-function toJSON(table, options = {}) {
+function childRows(tableContainer) {
+  return [...tableContainer.children].filter((c) => {
+    return c.tagName == "TR";
+  });
+}
+
+function childCells(row) {
+  return [...row.children].filter((c) => {
+    return c.tagName == "TD" || c.tagName == "TH";
+  });
+}
+
+export function tableToJSON(table, options = {}) {
   let includeheaders = options.includeheaders || false;
   var rows = [];
   var numHeaderRows = 0;
   if (includeheaders) {
-    let headerRows = table.querySelectorAll("thead tr");
-    for (let i = 0; i < headerRows.length; i++) {
-      rows.push(headerRows[i]);
+    var thead = [...table.children].find((c) => c.tagName == "THEAD");
+    // Todo: handle special case of no thead but a first row containing only th's
+    if (thead) {
+      rows = rows.concat(...childRows(thead));
+      numHeaderRows = rows.length;
     }
-    rows = rows.concat(...table.querySelectorAll("thead tr"));
-    numHeaderRows = rows.length;
-  }
-  var rows = rows.concat(...table.querySelectorAll("tr"));
-  function childCells(row) {
-    // console.log("childCells", row.children.length);
-    return [...row.children].filter((c) => {
-      return c.tagName == "TD" || c.tagName == "TH";
-    });
   }
 
+  var tbody = [...table.children].find((c) => c.tagName == "TBODY") || table;
+  console.log(tbody.tagName);
+  var rows = rows.concat(...childRows(tbody));
   let rowLengths = rows.map((r) => childCells(r).length);
   let maxRowLength = Math.max(...rowLengths.concat(0));
   let minRowLength = Math.min(...rowLengths.concat(0));
-  console.log(`\n  max row length: ${maxRowLength}\n  min row length: ${minRowLength}`);
+  console.log(
+    `\n  max row length: ${maxRowLength}\n  min row length: ${minRowLength}`
+  );
   var records = rows.map((_) => new Array(maxRowLength).fill(null));
 
   for (var i = 0; i < rows.length; i++) {
@@ -72,14 +69,22 @@ function toJSON(table, options = {}) {
     var cells = childCells(row);
     var currentCellIndex = 0;
     cells.forEach((cell, j) => {
-      let rowSpan = cell.rowSpan || 1;
-      let colSpan = cell.colSpan || 1;
+      let { rowSpan, colSpan } = cell;
+      // linkedom doesn't support this as a property on the node - look up attr instead:
+      if (!rowSpan || !colSpan) {
+        rowSpan = parseInt(cell.getAttribute("rowspan") || "1", 10);
+        colSpan = parseInt(cell.getAttribute("colspan") || "1", 10);
+      }
+
       // records[i][currentCellIndex] = cell.textContent;
       // if (cell.rowSpan > 1 || cell.colSpan > 1) {
-      for (var y = 0; y < colSpan; y++) {
-        for (var z = 0; z < rowSpan; z++) {
-          // Todo: find the next open one (i.e. if a previous rowspan expanded)
-          while (records[i + z][currentCellIndex]) {
+      for (var _ = 0; _ < colSpan; _++) {
+        for (var row = 0; row < rowSpan; row++) {
+          let currentRowIndex = row + i;
+          // Find the next open cell to apply to (i.e. if a previous rowspan expanded into this space.
+          // Todo: consult with spec/wpt to see if there are some good test cases to make sure this
+          // works as expected
+          while (records[currentRowIndex][currentCellIndex]) {
             currentCellIndex += 1;
           }
           if (currentCellIndex > maxRowLength) {
@@ -95,31 +100,24 @@ function toJSON(table, options = {}) {
                 maxRowLength
             );
           }
-          records[i + z][currentCellIndex] = cell;
+          // Todo: should we just expand out to a string here? Maybe keeping a reference to cell is helpful
+          // for the header row merging later? If not then just remove this.
+          records[currentRowIndex][currentCellIndex] = cell;
         }
         currentCellIndex += 1;
-        // records[i + z][j] = cell.textContent;
       }
-      // }
-      // if (cell.colSpan > 1) {
-      //   for (var z = 1; z < cell.colSpan; z++) {
-      //     records[i][j + z] = cell.textContent;
-      //   }
-      // }
     });
   }
 
-  // Todo: test this
+  // This is handling cases like https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States
+  // with complicated multi row headers. Basically merge header rows together into a new row and remove the others.
+  // Todo: add this to test_utils.js
   if (includeheaders && numHeaderRows > 1) {
-    let labels = new Array(maxRowLength).fill("");
-    // let labels = new Array(rows[0].length).fill("");
     let colTitles = [];
     for (let j = 0; j < maxRowLength; j++) {
       let titleSet = new Set();
       for (let i = 0; i < numHeaderRows; i++) {
         titleSet.add(records[i][j]);
-        // colTitles[colTitles.length - 1] += (records[i][j]?.textContent?.trim() || "ERR");
-        // labels[j] += records[i][j]?.textContent?.trim() || "ERR";
       }
       colTitles.push(
         [...titleSet.values()]
@@ -127,19 +125,22 @@ function toJSON(table, options = {}) {
           .filter((text) => text != "")
           .join(" - ")
       );
-      // labels[i][j] ? labels[i][j] + rows[i][j] : rows[i][j];
     }
-    // console.log(labels);
     records = records.slice(numHeaderRows);
     records.unshift(colTitles);
   }
 
   for (let [rowIndex, row] of records.entries()) {
     for (let [colIndex, col] of row.entries()) {
+      if (!records[rowIndex][colIndex]) {
+        console.error("Error: missing cell", rowIndex, colIndex);
+        records[rowIndex][colIndex] = "";
+      }
       records[rowIndex][colIndex] = (
         typeof col == "string" ? col : col.textContent
       )
         .trim()
+        .replaceAll("\r\n", "\\r\\n")
         .replaceAll("\n", "\\n");
     }
   }
@@ -147,7 +148,7 @@ function toJSON(table, options = {}) {
   return records;
 }
 
-export default async function transform({ input, options = {} }) {
+export default function transform({ input, options = {} }) {
   let tableSelector = options.tableSelector || "table";
 
   let document = new DOMParser().parseFromString(input, "text/html");
@@ -158,7 +159,7 @@ export default async function transform({ input, options = {} }) {
     throw new Error(`No table matching selector: ${tableSelector}`);
   }
 
-  let json = toJSON(table, options);
+  let json = tableToJSON(table, options);
   return toCSV(json, {
     includeheaders: options.includeheaders,
   });
