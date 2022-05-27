@@ -1,6 +1,6 @@
 import { DOMParser } from "https://unpkg.com/linkedom/worker";
 
-// Todo: make this a reference block (without being a "builtin" by allowing ESM imports from custom script)
+// Todo: move this to a separate repo
 // Todo: test this using WPT (generating expected results by copy/pasting into sheets)
 // https://wpt.live/html/semantics/tabular-data/
 function toCSV(arr, options = {}) {

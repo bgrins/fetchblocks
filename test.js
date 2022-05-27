@@ -217,9 +217,32 @@ Deno.test("fetchblocks - templating", async () => {
 });
 Deno.test("fetchblocks - transform only", async () => {
   assertEquals(
-    await fetchblocks.run([{ type: "jmespath", value: "a" }], {
-      stubResponse: { a: "val" },
-    }),
+    await fetchblocks.run(
+      [
+        {
+          transform: new URL("./utils/jmespath.js", import.meta.url),
+          value: "a",
+        },
+      ],
+      {
+        stubResponse: { a: "val" },
+      }
+    ),
+    "val"
+  );
+  assertEquals(
+    await fetchblocks.run(
+      [
+        {
+          transform: new URL("./utils/jmespath.js", import.meta.url).toString(),
+          value: "a",
+        },
+      ],
+      {
+        stubResponse: { a: "val" },
+        verbose: true,
+      }
+    ),
     "val"
   );
 });
@@ -251,9 +274,9 @@ Deno.test("fetchblocks - jmespath", async () => {
   //       resource:
   //         "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
   //     },
-  //     { type: "jmespath", value: "Results[].{name: Make_Name, id: Make_ID}" },
-  //     { type: "json_to_csv" },
-  //     { type: "script", value: "return input.split('\\n').slice(0, 5).join('\\n')" },
+  //     { transform: new URL("./utils/jmespath.js", import.meta.url), value: "Results[].{name: Make_Name, id: Make_ID}" },
+  //     { transform: new URL("json_to_csv.js", import.meta.url) },
+  //     { transform: "return input.split('\\n').slice(0, 5).join('\\n')" },
   //   ]),
   //   [
   //     {
@@ -271,9 +294,7 @@ Deno.test("fetchblocks - transform src", async () => {
           resource: "https://example.com",
         },
         {
-          type: "noop",
-          // src: "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/utils/table-to-csv.js",
-          // src: new URL("./utils/noop.js", import.meta.url).toString(),
+          transform: new URL("./utils/noop.js", import.meta.url),
         },
       ],
       {
@@ -289,9 +310,7 @@ Deno.test("fetchblocks - transform src", async () => {
           resource: "https://example.com",
         },
         {
-          type: "script",
-          // src: "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/utils/table-to-csv.js",
-          src: new URL("./utils/noop.js", import.meta.url).toString(),
+          transform: new URL("./utils/noop.js", import.meta.url).toString(),
         },
       ],
       {
@@ -315,7 +334,7 @@ Deno.test("fetchblocks - notion", async () => {
       },
     },
     {
-      type: "jmespath",
+      transform: new URL("./utils/jmespath.js", import.meta.url),
       value: "{{dataset.jmespath}}",
     },
   ]);
@@ -324,7 +343,7 @@ Deno.test("fetchblocks - notion", async () => {
     // Todo: external reference?
     { block },
     {
-      type: "jmespath",
+      transform: new URL("./utils/jmespath.js", import.meta.url),
       value: "*",
     },
   ]);
@@ -567,8 +586,7 @@ Deno.test("fetchblocks custom script", async () => {
           "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCOT-EoZK8XhAeGWaH4nCMsWPuPJNAW-7SeWfaeKxH1MSr6IRwYO3W5t69ZnisVHWcjuQ8xtnlWjPj/pub?gid=0&single=true&output=csv",
       },
       {
-        type: "script",
-        value: `
+        transform: `
         let todos = [];
         // Todo - share some proper csv utils
         for (let row of input.split("\\r\\n")) {
@@ -623,13 +641,19 @@ Deno.test("md to csv", async () => {
       resource:
         "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
     },
-    { type: "md_to_json" },
+    { transform: new URL("./utils/md_to_json.js", import.meta.url) },
 
     // Grab the first N rows
-    { type: "jmespath", value: "[].rows[0:{{dataset.num_rows}}]" },
+    {
+      transform: new URL("./utils/jmespath.js", import.meta.url),
+      value: "[].rows[0:{{dataset.num_rows}}]",
+    },
 
     // Grab the relevant columns (name, stars, forks)
-    { type: "jmespath", value: "[][1:4].text" },
+    {
+      transform: new URL("./utils/jmespath.js", import.meta.url),
+      value: "[][1:4].text",
+    },
   ]);
 
   let ret = await block.run({
@@ -656,8 +680,7 @@ Deno.test("md to csv", async () => {
   ret = await fetchblocks.run(
     [
       { block },
-      { type: "json_to_csv" },
-      // { type: "slice"},
+      { transform: new URL("./utils/json_to_csv.js", import.meta.url) },
     ],
     {
       verbose: true,
@@ -674,8 +697,7 @@ Deno.test("md to csv", async () => {
   ret = await fetchblocks.run(
     [
       // todo: just allow the stubresponse here instead of requiring a top level request
-      { type: "csv_to_json" },
-      // { type: "slice"},
+      { transform: new URL("./utils/csv_to_json.js", import.meta.url) },
     ],
     {
       verbose: true,
