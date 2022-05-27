@@ -9,8 +9,7 @@ import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
 
 const CONFIG = configSync();
 
-export function acornParse() {}
-// export { parse as acornParse } from "https://esm.sh/acorn";
+export { parse as acornParse } from "https://esm.sh/acorn";
 
 // Set
 // USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT=true
