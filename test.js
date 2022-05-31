@@ -249,15 +249,14 @@ Deno.test("fetchblocks - transform only", async () => {
 // TODO: replace this with something else
 Deno.test("fetchblocks - jmespath", async () => {
   assertEquals(
-    await fetchblocks.run(
-      JSON.parse(`[
+    await fetchblocks.run([
       {
         "resource":
           "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
       },
-      { "type": "jmespath", "value": "Results[].{name: Make_Name, id: Make_ID}" },
-      { "type": "jmespath", "value": "[?name == \`ASTON MARTIN\`]" }
-    ]`)
+      { "transform": new URL("./utils/jmespath.js", import.meta.url), "value": "Results[].{name: Make_Name, id: Make_ID}" },
+      { "transform": new URL("./utils/jmespath.js", import.meta.url), "value": "[?name == \`ASTON MARTIN\`]" }
+    ]
     ),
     [
       {
@@ -438,6 +437,7 @@ Deno.test("loadFromText with inheritance", async () => {
     null,
     {
       id: "n_top_stars",
+      base: new URL("./testdata/blocks/multiple-json.json", import.meta.url),
     }
   );
   let ret = await block.run({
@@ -461,7 +461,7 @@ Deno.test("fetchblocks loaders", async () => {
   assert(fetchblocks.loadFromURI);
 
   let block = await fetchblocks.loadFromText(
-    '[{ "resource": "http://example.com" }, { "type": "noop" }]',
+    '[{ "resource": "http://example.com" }, { "transform": "return input;" }]',
     "json"
   );
   let resp = await block.run({
@@ -478,6 +478,7 @@ Deno.test("fetchblocks loaders", async () => {
   });
   assert(resp.indexOf("<html") != -1);
 
+  // Todo: convert these to use src
   block = await fetchblocks.loadFromText(
     `
 <fetch-block
@@ -494,6 +495,7 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
   );
   resp = await block.run({
     verbose: true,
+    base: import.meta.url,
   });
   assertEquals(resp, "440 ASTON MARTIN");
 

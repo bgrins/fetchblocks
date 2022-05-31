@@ -8,6 +8,44 @@ import {
 } from "./deps.js";
 
 console.log(UTILS_IMPORT_BASE);
+
+export function parseTransformAttribute(value, base) {
+  let inlineScriptText;
+  let externalScriptURL;
+  try {
+    externalScriptURL = new URL(value, base);
+  } catch (_) {}
+
+  if (!externalScriptURL) {
+    let scriptParses = true;
+    try {
+      acornParse(value, {
+        ecmaVersion: 2022,
+        sourceType: "script",
+        allowReturnOutsideFunction: true,
+      });
+    } catch (e) {
+      try {
+        acornParse(value, {
+          ecmaVersion: 2022,
+          sourceType: "module",
+        });
+      } catch (e) {
+        scriptParses = false;
+      }
+    }
+
+    if (scriptParses) {
+      inlineScriptText = value;
+    }
+  }
+
+  return {
+    inlineScriptText,
+    externalScriptURL,
+  }
+}
+
 function getURLForUtil(util) {
   const mappings = {
     noop: "./utils/noop.js",
@@ -139,13 +177,19 @@ blockLoaders.set("json", {
     }
 
     if (base) {
-      if (ret[0].block) {
-        // Todo: how to handle debugger case where there's no URL?
-        // This is prob similar to the potential optimization for local links
-        // on remote files.
-        ret[0].block = decodeURI(new URL(ret[0].block, base).toString());
-      } else if (ret[0].resource) {
-        ret[0].resource = decodeURI(new URL(ret[0].resource, base).toString());
+      for (let step of ret) {
+        if (step.resource) {
+          step.resource = decodeURI(new URL(step.resource, base).toString());
+        }
+        if (step.block) {
+          step.block = decodeURI(new URL(step.block, base).toString());
+        }
+        if (step.transform) {
+          let { externalScriptURL } = parseTransformAttribute(step.transform, base);
+          if (externalScriptURL) {
+            step.transform = decodeURI(externalScriptURL.toString());
+          }
+        }
       }
     }
 
@@ -575,39 +619,19 @@ class fetchblock extends EventTarget {
         }
         flattened.push(step);
       } else if (step.transform) {
-        let scriptToRun;
-        let url;
-        try {
-          url = new URL(step.transform);
-        } catch (_) {}
-        if (url) {
-          scriptToRun = getScriptForSrc(url.toString());
-        } else {
-          let scriptParses = true;
-          try {
-            acornParse(step.transform, {
-              ecmaVersion: 2022,
-              sourceType: "script",
-              allowReturnOutsideFunction: true,
-            });
-          } catch (e) {
-            try {
-              acornParse(step.transform, {
-                ecmaVersion: 2022,
-                sourceType: "module",
-              });
-            } catch (e) {
-              scriptParses = false;
-            }
-          }
 
-          if (scriptParses) {
-            scriptToRun = step.transform;
-          }
+        let { inlineScriptText, externalScriptURL } = parseTransformAttribute(step.transform);
+        let scriptToRun;
+        if (externalScriptURL) {
+          scriptToRun = getScriptForSrc(externalScriptURL.toString());
+        } else if (inlineScriptText) {
+          scriptToRun = inlineScriptText;
         }
 
         if (!scriptToRun) {
-          throw new Error(`No valid URL or script in transform step. Value: ${step.transform}`);
+          throw new Error(
+            `No valid URL or script in transform step. Value: ${step.transform}`
+          );
         }
         step.transform = scriptToRun;
         flattened.push(step);
@@ -716,6 +740,7 @@ class fetchblock extends EventTarget {
       let { transform } = thisStep;
       if (!stepValue && !transform) {
         console.error("TODO: Clean this up");
+        // throw new Error("Invalid step - this should be thrown before we start running though")
       }
 
       if (transform) {

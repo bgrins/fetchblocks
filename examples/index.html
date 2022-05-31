@@ -2,29 +2,106 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        display: grid;
+        height: 100vh;
+        grid-template-areas:
+          "plan run"
+          "result result";
+      }
+      pre {
+        overflow: auto;
+      }
+      #plan {
+        grid-area: plan;
+      }
+      #run {
+        grid-area: run;
+      }
+      #result {
+        grid-area: result;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="plan">Plan:</pre>
+    <pre id="run">Run:</pre>
+    <pre id="result">Result:</pre>
+
     <script type="module">
-      import { run, fetchblocks, jsEval } from "../web/mod.js";
-(async () => {
+      import { fetchblock } from "..//web/bundle-module.js";
+      // import { fetchblock } from "https://esm.sh/@bgrins/fetchblocks/web/bundle-module.js";
+      // (async () => {
+      //   // todo: find a new hello world example (CORS stopped working here)
+      //   let block = new fetchblock([
+      //     {
+      //       resource: "https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF",
+      //     },
+      //   ]);
+      //   let response = await block.run();
+      //   console.log(response);
+      // })();
+      async function runWithLogging(steps, options) {
+        let block = new fetchblock(steps);
+        block.addEventListener("PlanReady", (e) => {
+          document.querySelector("#plan").textContent +=
+            "\n" + JSON.stringify(e.detail, null, 2);
+        });
+        block.addEventListener("StepStarting", (e) => {
+          document.querySelector("#run").textContent +=
+            "\nStepStarting" + JSON.stringify(e.detail, null, 2);
+        });
+        block.addEventListener("StepComplete", (e) => {
+          document.querySelector("#run").textContent +=
+            "\nStepComplete" + JSON.stringify(e.detail, null, 2);
+        });
 
-  // TODO: worker
-  console.log(jsEval("return 1+1"))
-  
-  let resp = await fetchblocks.run([
-      {
-        resource:
-          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
-      },
-      { type: "jmespath", value: "Results[].{name: Make_Name, id: Make_ID}" },
-      { type: "jmespath", value: "[?name == `ASTON MARTIN`]" },
-    ]);
-  console.log(JSON.stringify(resp));
-      console.log(run());
-      console.log(await fetchblocks.run([
-    { resource: "http://example.com" },
-    { type: "script", value: "return builtins.jmespath(input, { value: 'a' })" },
-  ], { stubResponse: { a: 1}}));
+        let result = await block.run(options);
+        document.querySelector("#result").textContent +=
+          "\n" + JSON.stringify(result, null, 2);
+      }
 
-})();
+      runWithLogging(
+        [
+          {
+            resource:
+              "https://raw.githubusercontent.com/EvanLi/Github-Ranking/0c2124166834124c6225ebb3de989a8d5b916e00/Top100/Top-100-stars.md",
+          },
+          { transform: new URL("../utils/md_to_json.js", import.meta.url) },
+
+          // Grab the first N rows
+          { transform: new URL("../utils/jmespath.js", import.meta.url), value: "[].rows[0:{{dataset.num_rows}}]" },
+
+          // Grab the relevant columns (name, stars, forks)
+          { transform: "https://raw.githubusercontent.com/bgrins/fetchblocks/edcc970c290ccd6ef2063fc40c9e3de5882280fc/utils/jmespath.js", value: "[][1:4].text" },
+        ],
+        {
+          dataset: {
+            num_rows: 5,
+          },
+        }
+      );
+
+      // runWithLogging(
+      //   [
+      //     {
+      //       resource:
+      //         "https://x-colors.herokuapp.com/api/random/{{dataset.hue}}",
+      //     },
+      //     { type: "jmespath", value: "hex" },
+      //   ],
+      //   {
+      //     dataset: {
+      //       hue: 1,
+      //     },
+      //   }
+      // );
     </script>
   </body>
 </html>

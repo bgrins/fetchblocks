@@ -2,6 +2,7 @@ const CONFIG = {};
 
 export { CONFIG };
 export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
+export { parse as acornParse } from "https://esm.sh/acorn@8.7.1";
 
 // export { execInSandbox } from "https://raw.githubusercontent.com/bgrins/js-sandbox/main/mod.js";
 export { execInSandbox } from "../../js-sandbox/mod.js";
