@@ -1,4 +1,11 @@
-import { Liquid, DOMParser, nanoid, execInSandbox, UTILS_IMPORT_BASE } from "./deps.js";
+import {
+  Liquid,
+  DOMParser,
+  nanoid,
+  execInSandbox,
+  UTILS_IMPORT_BASE,
+  acornParse,
+} from "./deps.js";
 
 console.log(UTILS_IMPORT_BASE);
 function getURLForUtil(util) {
@@ -243,6 +250,8 @@ blockLoaders.set("html", {
 
       // TODO: Handle remote scripts as well
       if (transform.tagName == "SCRIPT") {
+        transformBlock.transform = transform.textContent;
+        // Todo: remove this when the migration from type to transform is done:
         transformBlock.type = "script";
         transformBlock.value = transform.textContent;
       }
@@ -259,8 +268,6 @@ blockLoaders.set("html", {
 const fetchblocks = (() => {
   return {
     blockLoaders,
-    // By default this will read from dotenv. If you want more you can set:
-    env: new Map(),
 
     getLoaderForText(text) {
       let loader;
@@ -562,7 +569,53 @@ class fetchblock extends EventTarget {
 
         // Todo: Handle empty or other errors
         flattened.push(...parentFlattened);
+      } else if (step.resource) {
+        if (step.resource instanceof URL) {
+          step.resource = step.resource.toString();
+        }
+        flattened.push(step);
+      } else if (step.transform) {
+        let scriptToRun;
+        let url;
+        try {
+          url = new URL(step.transform);
+        } catch (_) {}
+        if (url) {
+          scriptToRun = getScriptForSrc(url.toString());
+        } else {
+          let scriptParses = true;
+          try {
+            acornParse(step.transform, {
+              ecmaVersion: 2022,
+              sourceType: "script",
+              allowReturnOutsideFunction: true,
+            });
+          } catch (e) {
+            try {
+              acornParse(step.transform, {
+                ecmaVersion: 2022,
+                sourceType: "module",
+              });
+            } catch (e) {
+              scriptParses = false;
+            }
+          }
+
+          if (scriptParses) {
+            scriptToRun = step.transform;
+          }
+        }
+
+        if (!scriptToRun) {
+          throw new Error(`No valid URL or script in transform step. Value: ${step.transform}`);
+        }
+        step.transform = scriptToRun;
+        flattened.push(step);
       } else {
+        // Todo: throw an error when the migration is complete
+        console.error(
+          "Unexpected step - should have either `resource`, `block`, or `transform` set."
+        );
         flattened.push(step);
       }
     }
@@ -655,10 +708,21 @@ class fetchblock extends EventTarget {
         } else {
           stepValue = await this.fetchData(thisStep, options);
         }
+      } else {
+        let lastStep = plan[plan.currentStep - 1];
+        incomingValue = lastStep.stepValue;
       }
 
+      let { transform } = thisStep;
+      if (!stepValue && !transform) {
+        console.error("TODO: Clean this up");
+      }
+
+      if (transform) {
+        stepValue = await jsEval(transform, incomingValue, thisStep);
+      }
       // Todo: rename "type" to "transform" and make handling src etc more consistent
-      if (thisStep.type) {
+      else if (thisStep.type) {
         if (!incomingValue) {
           let lastStep = plan[plan.currentStep - 1];
           incomingValue = lastStep.stepValue;

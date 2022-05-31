@@ -3,11 +3,12 @@ const CONFIG = {};
 export { CONFIG };
 export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
 
+// export { execInSandbox } from "https://raw.githubusercontent.com/bgrins/js-sandbox/main/mod.js";
 export { execInSandbox } from "../../js-sandbox/mod.js";
-// export { DOMParser } from "https://unpkg.com/linkedom/worker";
 
-export { DOMParser } from "https://esm.sh/linkedom";
+// export { DOMParser } from "https://unpkg.com/linkedom/worker";
 // export { DOMParser } from "https://esm.sh/linkedom?target=es2022&bundle";
+export { DOMParser } from "https://esm.sh/linkedom";
 
 // Todo: ship these on localhost or just bundle them up and ship them as importMap to eval for web
 export const UTILS_IMPORT_BASE = "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
