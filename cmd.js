@@ -8,13 +8,14 @@ import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
 // deno run -A cmd.js testdata/blocks/external1.html --dataset foo=bar --dataset bar=baz
 // deno run -A cmd.js testdata/blocks/top-stars.json --dataset num_rows=10
 // deno run -A --watch cmd.js ./testdata/blocks/multiple-json.json#n_top_stars_external_reference --dataset num_rows=10
-
+// deno run -A cmd.js testdata/blocks/sp-to-csv.html#open-issues --dataset page=1 --dataset per_page=100 -o ./testdata/spOpen1.csv
 
 async function main(args) {
   const parsed = parse(args);
-  const { format, help, verbose = false, dataset, _ } = parsed;
-  const serve = parsed["serve"];
+  const { format, help, verbose = false, dataset, serve, _ } = parsed;
   const dryRun = parsed["dry-run"];
+  let outputFile = parsed["o"] || parsed["output"];
+
   const [file] = _;
 
   if (help) {
@@ -97,7 +98,14 @@ async function main(args) {
       dataset: ds,
       verbose,
     });
-    console.log(resp);
+    if (outputFile) {
+      console.log("Saving to", outputFile);
+      await Deno.writeTextFile(outputFile, resp);
+      let stat = await Deno.stat(outputFile);
+      console.log(stat);
+    } else {
+      console.log(resp);
+    }
   }
 }
 
