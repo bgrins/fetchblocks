@@ -202,16 +202,19 @@ blockLoaders.set("json", {
     return JSON.stringify(block);
   },
 });
-blockLoaders.set("js", {
-  shouldHandle(content) {},
-  getLikelyBlocks(text) {
-    return;
-  },
-  async getBlock() {
-    // Todo: Should this be an ESM?
-    throw new Error("JS Loader unimplemented");
-  },
-});
+
+// Todo: fetch this and parse AST looking for some known export like FETCHBLOCKS
+// blockLoaders.set("js", {
+//   shouldHandle(content) {},
+//   getLikelyBlocks(text) {
+//     return;
+//   },
+//   async getBlock() {
+//     // Todo: Should this be an ESM?
+//     throw new Error("JS Loader unimplemented");
+//   },
+// });
+
 blockLoaders.set("html", {
   shouldHandle(content) {
     return content.indexOf("<fetch-block") != -1;
@@ -294,15 +297,7 @@ blockLoaders.set("html", {
       "fetch-block-transform, script[type='text/fetch-block-transform']"
     )) {
       let transformBlock = Object.assign(gatherAttributes(transform));
-      console.trace("In Loop", transformBlock);
-      // TODO: Handle remote scripts as well
       if (transform.getAttribute("src")) {
-        console.trace(
-          "REMOTE",
-          transform.getAttribute("src"),
-          base,
-          transformBlock
-        );
         transformBlock.transform = decodeURI(
           new URL(transform.getAttribute("src"), base).toString()
         );
@@ -317,9 +312,6 @@ blockLoaders.set("html", {
     }
 
     return blocks;
-
-    // if url, do a fetch
-    // parse HTML. Copy stuff from import-components.js
   },
 });
 
@@ -353,7 +345,8 @@ const fetchblocks = (() => {
     // We'll attempt to detect the appropriate loader, else you can
     // pass them in (default values "js", "html", "json" or you can
     // make your own with `fetchblocks.loader.set("foo", async (input) => {}))`
-    async loadFromText(text, loader, options = {}) {
+    async loadFromText(text, options = {}) {
+      let { loader } = options;
       if (!loader) {
         loader = this.getLoaderForText(text);
       }
@@ -405,7 +398,8 @@ const fetchblocks = (() => {
         );
       }
       let text = await response.text();
-      let block = await this.loadFromText(text, loader, {
+      let block = await this.loadFromText(text, {
+        loader,
         base: uri,
         response,
       });
@@ -609,13 +603,10 @@ class fetchblock extends EventTarget {
           if (key.startsWith("#") && this.sourceText) {
             // Optimization - if we have a local link within the same file then reuse
             // the same text rather than hitting the network again.
-            parent = await fetchblocks.loadFromText(
-              this.sourceText,
-              this.loader,
-              {
-                id: key.substr(1),
-              }
-            );
+            parent = await fetchblocks.loadFromText(this.sourceText, {
+              loader: this.loader,
+              id: key.substr(1),
+            });
           } else {
             parent = await fetchblocks.loadFromURI(parent);
           }

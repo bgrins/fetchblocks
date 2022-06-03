@@ -439,7 +439,6 @@ Deno.test("loadFromText with inheritance", async () => {
   }
   let block = await fetchblocks.loadFromText(
     Deno.readTextFileSync("./testdata/blocks/multiple-json.json"),
-    null,
     {
       id: "n_top_stars",
       base: new URL("./testdata/blocks/multiple-json.json", import.meta.url),
@@ -476,7 +475,9 @@ Deno.test("fetchblocks loaders", async () => {
 
   block = await fetchblocks.loadFromText(
     `<fetch-block resource="http://example.com">`,
-    "html"
+    {
+      loader: "html",
+    }
   );
   resp = await block.run({
     verbose: false,
@@ -498,9 +499,9 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
   </script>
 </fetch-block>
   `,
-    "html",
     {
       base: import.meta.url,
+      loader: "html",
     }
   );
   resp = await block.run({

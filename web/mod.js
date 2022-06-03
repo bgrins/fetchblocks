@@ -391,9 +391,10 @@ const fetchblocks = (() => {
         );
       }
       let text = await response.text();
-      let block = await this.loadFromText(text, loader, {
+      let block = await this.loadFromText(text, {
         base: uri,
         response,
+        loader
       });
 
       return block;
@@ -597,8 +598,8 @@ class fetchblock extends EventTarget {
             // the same text rather than hitting the network again.
             parent = await fetchblocks.loadFromText(
               this.sourceText,
-              this.loader,
               {
+                loader: this.loader,
                 id: key.substr(1),
               }
             );

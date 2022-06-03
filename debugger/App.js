@@ -294,7 +294,7 @@ async function runActiveBlock(activeBlockId) {
     // TODO: abort signal
     // window.block?.destroy();
     window.block = null;
-    let block = await fetchblocks.loadFromText(window.editor.getValue(), null, {
+    let block = await fetchblocks.loadFromText(window.editor.getValue(), {
       id,
     });
     window.block = block;

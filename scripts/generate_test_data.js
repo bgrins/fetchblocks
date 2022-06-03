@@ -108,7 +108,6 @@ let aw = await fetchblocks.loadFromText(
     }
 ]
 `,
-  null,
   {
     base: import.meta.url,
   }
