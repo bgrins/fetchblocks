@@ -31,17 +31,16 @@ Deno.writeTextFileSync(
   })
 );
 
-console.log(page1.split("\n").length, page2.split("\n").length)
-Deno.writeTextFileSync(
-  "./testdata/spOpen.csv",
-  page1 + "\n" + page2
-);
-
+console.log(page1.split("\n").length, page2.split("\n").length);
+Deno.writeTextFileSync("./testdata/spOpen.csv", page1 + "\n" + page2);
 
 let vehicles = await fetchblocks.loadFromURI(
   new URL("../testdata/blocks/vehicles.html#base", import.meta.url)
 );
-Deno.writeTextFileSync("./testdata/getallmakes.json", JSON.stringify(await vehicles.run()));
+Deno.writeTextFileSync(
+  "./testdata/getallmakes.json",
+  JSON.stringify(await vehicles.run())
+);
 
 // let top100 = await new fetchblock([
 //   {
@@ -99,15 +98,21 @@ Deno.writeTextFileSync("./testdata/getallmakes.json", JSON.stringify(await vehic
 //   )
 // );
 
-let aw = await fetchblocks.loadFromText(`
+let aw = await fetchblocks.loadFromText(
+  `
 [
   { "resource": "https://api.github.com/users/{{dataset.user}}/subscriptions?per_page={{ dataset.per_page | default: 5 }}" },
-  { "type": "jmespath", "value": "[].{id: id, node_id: node_id, name: name, full_name: full_name, private: private, owner: owner.login, html_url: html_url, description: description, created_at: created_at, updated_at: updated_at, pushed_at: pushed_at, homepage: homepage, size: size, stargazers_count: stargazers_count, watchers_count: watchers_count, language: language, has_wiki: has_wiki, has_pages: has_pages, forks_count: forks_count, archived: archived, disabled: disabled, open_issues_count: open_issues_count, topics: topics, forks: forks, open_issues: open_issues, watchers: watchers }" },
+  { "transform": "../utils/jmespath.js", "value": "[].{id: id, node_id: node_id, name: name, full_name: full_name, private: private, owner: owner.login, html_url: html_url, description: description, created_at: created_at, updated_at: updated_at, pushed_at: pushed_at, homepage: homepage, size: size, stargazers_count: stargazers_count, watchers_count: watchers_count, language: language, has_wiki: has_wiki, has_pages: has_pages, forks_count: forks_count, archived: archived, disabled: disabled, open_issues_count: open_issues_count, topics: topics, forks: forks, open_issues: open_issues, watchers: watchers }" },
     {
-      "type": "json_to_csv"
+      "transform": "../utils/json_to_csv.js"
     }
 ]
-`);
+`,
+  null,
+  {
+    base: import.meta.url,
+  }
+);
 Deno.writeTextFileSync(
   "./testdata/aw.csv",
   await aw.run({
@@ -120,11 +125,16 @@ Deno.writeTextFileSync(
 );
 
 let states = await fetchblocks.run([
-  { resource: new URL("../testdata/list-of-states-outerhtml.html", import.meta.url )},
+  {
+    resource: new URL(
+      "../testdata/list-of-states-outerhtml.html",
+      import.meta.url
+    ),
+  },
   // Todo: confirm includeheaders is correct here
-  { transform: new URL("../utils/table_to_csv.js", import.meta.url ), includeheaders: true },
+  {
+    transform: new URL("../utils/table_to_csv.js", import.meta.url),
+    includeheaders: true,
+  },
 ]);
-Deno.writeTextFileSync(
-  "./testdata/list-of-states-outerhtml.csv",
-  states
-);
+Deno.writeTextFileSync("./testdata/list-of-states-outerhtml.csv", states);

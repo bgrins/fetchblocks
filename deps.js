@@ -16,7 +16,7 @@ export { parse as acornParse } from "https://esm.sh/acorn@8.7.1";
 export const UTILS_IMPORT_BASE =
   CONFIG.USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT === "true"
     ? import.meta.url
-    : "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
+    : "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/"; 
 
 // export { DOMParser } from "https://unpkg.com/linkedom/worker";
 // export { DOMParser } from "https://esm.sh/linkedom?target=es2022&bundle";

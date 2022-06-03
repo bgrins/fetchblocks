@@ -3,17 +3,17 @@
     "resource": "https://raw.githubusercontent.com/EvanLi/Github-Ranking/650b530498eace49eaa55bcf4d97178ac67399fe/Top100/Top-100-stars.md"
   },
   {
-    "type": "md_to_json"
+    "transform": "../../utils/md_to_json.js"
   },
   {
-    "type": "jmespath",
+    "transform": "../../utils/jmespath.js",
     "value": "[].rows[0:{{dataset.num_rows}}]"
   },
   {
-    "type": "jmespath",
+    "transform": "../../utils/jmespath.js",
     "value": "[][1:4].text"
   },
   {
-    "type": "json_to_csv"
+    "transform": "../../utils/json_to_csv.js"
   }
 ]

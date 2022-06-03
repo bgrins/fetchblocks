@@ -251,13 +251,18 @@ Deno.test("fetchblocks - jmespath", async () => {
   assertEquals(
     await fetchblocks.run([
       {
-        "resource":
-          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
+        resource:
+          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
       },
-      { "transform": new URL("./utils/jmespath.js", import.meta.url), "value": "Results[].{name: Make_Name, id: Make_ID}" },
-      { "transform": new URL("./utils/jmespath.js", import.meta.url), "value": "[?name == \`ASTON MARTIN\`]" }
-    ]
-    ),
+      {
+        transform: new URL("./utils/jmespath.js", import.meta.url),
+        value: "Results[].{name: Make_Name, id: Make_ID}",
+      },
+      {
+        transform: new URL("./utils/jmespath.js", import.meta.url),
+        value: "[?name == `ASTON MARTIN`]",
+      },
+    ]),
     [
       {
         id: 440,
@@ -465,7 +470,7 @@ Deno.test("fetchblocks loaders", async () => {
     "json"
   );
   let resp = await block.run({
-    verbose: true,
+    verbose: false,
   });
   assert(resp.indexOf("<html") != -1);
 
@@ -474,7 +479,7 @@ Deno.test("fetchblocks loaders", async () => {
     "html"
   );
   resp = await block.run({
-    verbose: true,
+    verbose: false,
   });
   assert(resp.indexOf("<html") != -1);
 
@@ -484,19 +489,24 @@ Deno.test("fetchblocks loaders", async () => {
 <fetch-block
 id="multistep"
 resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
-  <fetch-block-transform type="jmespath" value="Results[].{name: Make_Name, id: Make_ID}"></fetch-block-transform>
-  <fetch-block-transform type="jmespath" value="[?name == \`ASTON MARTIN\`]"></fetch-block-transform>
+  <fetch-block-transform src="./utils/jmespath.js" value="Results[].{name: Make_Name, id: Make_ID}">
+  </fetch-block-transform>
+  <fetch-block-transform src="./utils/jmespath.js" value="[?name == \`ASTON MARTIN\`]">
+  </fetch-block-transform>
   <script type="text/fetch-block-transform">
     return input[0].id + " " + input[0].name;
   </script>
 </fetch-block>
   `,
-    "html"
+    "html",
+    {
+      base: import.meta.url,
+    }
   );
   resp = await block.run({
     verbose: true,
-    base: import.meta.url,
   });
+
   assertEquals(resp, "440 ASTON MARTIN");
 
   console.log(
@@ -514,12 +524,6 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
     verbose: true,
   });
   assertEquals(resp, "440 ASTON MARTIN");
-
-  // block = await fetchblocks.loadFromURI(new URL("./testdata/blocks/vehicles.html#base", import.meta.url), "html");
-  // resp = await block.run({
-  //   verbose: true,
-  // });
-  // assertEquals(resp, "440 ASTON MARTIN");
 });
 Deno.test("dependency graphs", async () => {
   if (isNode) {

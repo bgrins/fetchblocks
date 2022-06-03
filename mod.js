@@ -43,7 +43,7 @@ export function parseTransformAttribute(value, base) {
   return {
     inlineScriptText,
     externalScriptURL,
-  }
+  };
 }
 
 function getURLForUtil(util) {
@@ -114,7 +114,7 @@ export function getScriptForSrc(src) {
 
 const networkLoaders = new Map();
 
-// Todo: integrate with API?
+// Todo: integrate with APIs like this?
 // networkLoaders.set("gist", {
 //   shouldHandle(uri) {
 //     return uri.host == "gist.github.com"; // && uri.pathname looks like a gist;
@@ -185,7 +185,10 @@ blockLoaders.set("json", {
           step.block = decodeURI(new URL(step.block, base).toString());
         }
         if (step.transform) {
-          let { externalScriptURL } = parseTransformAttribute(step.transform, base);
+          let { externalScriptURL } = parseTransformAttribute(
+            step.transform,
+            base
+          );
           if (externalScriptURL) {
             step.transform = decodeURI(externalScriptURL.toString());
           }
@@ -291,14 +294,25 @@ blockLoaders.set("html", {
       "fetch-block-transform, script[type='text/fetch-block-transform']"
     )) {
       let transformBlock = Object.assign(gatherAttributes(transform));
-
+      console.trace("In Loop", transformBlock);
       // TODO: Handle remote scripts as well
-      if (transform.tagName == "SCRIPT") {
+      if (transform.getAttribute("src")) {
+        console.trace(
+          "REMOTE",
+          transform.getAttribute("src"),
+          base,
+          transformBlock
+        );
+        transformBlock.transform = decodeURI(
+          new URL(transform.getAttribute("src"), base).toString()
+        );
+      } else {
         transformBlock.transform = transform.textContent;
-        // Todo: remove this when the migration from type to transform is done:
-        transformBlock.type = "script";
-        transformBlock.value = transform.textContent;
       }
+      // Todo: remove this when the migration from type to transform is done:
+      // transformBlock.type = "script";
+      // transformBlock.value = transform.textContent;
+
       blocks.push(transformBlock);
     }
 
@@ -619,8 +633,9 @@ class fetchblock extends EventTarget {
         }
         flattened.push(step);
       } else if (step.transform) {
-
-        let { inlineScriptText, externalScriptURL } = parseTransformAttribute(step.transform);
+        let { inlineScriptText, externalScriptURL } = parseTransformAttribute(
+          step.transform
+        );
         let scriptToRun;
         if (externalScriptURL) {
           scriptToRun = getScriptForSrc(externalScriptURL.toString());
@@ -740,34 +755,36 @@ class fetchblock extends EventTarget {
       let { transform } = thisStep;
       if (!stepValue && !transform) {
         console.error("TODO: Clean this up");
-        // throw new Error("Invalid step - this should be thrown before we start running though")
+        throw new Error(
+          "Invalid step - this should be thrown before we start running though"
+        );
       }
 
       if (transform) {
         stepValue = await jsEval(transform, incomingValue, thisStep);
       }
       // Todo: rename "type" to "transform" and make handling src etc more consistent
-      else if (thisStep.type) {
-        if (!incomingValue) {
-          let lastStep = plan[plan.currentStep - 1];
-          incomingValue = lastStep.stepValue;
-        }
-        let transform = thisStep;
-        let scriptToRun;
-        if (getURLForUtil(transform.type)) {
-          transform.src = getURLForUtil(transform.type).toString();
-        }
+      // else if (thisStep.type) {
+      //   if (!incomingValue) {
+      //     let lastStep = plan[plan.currentStep - 1];
+      //     incomingValue = lastStep.stepValue;
+      //   }
+      //   let transform = thisStep;
+      //   let scriptToRun;
+      //   if (getURLForUtil(transform.type)) {
+      //     transform.src = getURLForUtil(transform.type).toString();
+      //   }
 
-        if (transform.src) {
-          scriptToRun = getScriptForSrc(transform.src);
-        } else if (transform.value) {
-          scriptToRun = transform.value;
-        } else {
-          throw new Error("No script detected in " + JSON.stringify(transform));
-        }
+      //   if (transform.src) {
+      //     scriptToRun = getScriptForSrc(transform.src);
+      //   } else if (transform.value) {
+      //     scriptToRun = transform.value;
+      //   } else {
+      //     throw new Error("No script detected in " + JSON.stringify(transform));
+      //   }
 
-        stepValue = await jsEval(scriptToRun, incomingValue, transform);
-      }
+      //   stepValue = await jsEval(scriptToRun, incomingValue, transform);
+      // }
       thisStep.stepValue = stepValue;
       plan.currentStep = plan.currentStep + 1;
       this.dispatchEvent(

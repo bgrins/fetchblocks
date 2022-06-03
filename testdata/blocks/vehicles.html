@@ -9,8 +9,8 @@ resource="https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json">
 <fetch-block
   id="multistep"
   block="#base">
-  <fetch-block-transform type="jmespath" value="Results[].{name: Make_Name, id: Make_ID}"></fetch-block-transform>
-  <fetch-block-transform type="jmespath" value="[?name == `ASTON MARTIN`]"></fetch-block-transform>
+  <fetch-block-transform src="../../utils/jmespath.js" value="Results[].{name: Make_Name, id: Make_ID}"></fetch-block-transform>
+  <fetch-block-transform src="../../utils/jmespath.js" value="[?name == `ASTON MARTIN`]"></fetch-block-transform>
   <script type="text/fetch-block-transform">
     return input[0].id + " " + input[0].name;
   </script>
