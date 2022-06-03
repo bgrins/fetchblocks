@@ -12,7 +12,7 @@ import jmespath from "./utils/jmespath.js";
 import table_to_csv from "./utils/table_to_csv.js";
 
 const listOfPopularDogBreeds = Deno.readTextFileSync(
-  "./testdata/list-of-popular-dog-breeds.html"
+  "./utils/fixtures/list-of-popular-dog-breeds.html"
 );
 
 Deno.test("csv_to_json", async () => {

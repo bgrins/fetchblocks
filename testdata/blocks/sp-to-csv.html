@@ -12,7 +12,7 @@
 >
   <fetch-block-transform
     type="jmespath"
-    value="[].{id: id, title: title, url: url, reactions: reactions.total_count, created_at: created_at, updated_at: updated_at, user: user.login, labels: labels }"
+    value="[].{title: title, url: html_url, created_at: created_at, updated_at: updated_at, user: user.login, labels: labels, reactions: reactions.total_count, id: id  }"
   ></fetch-block-transform>
   <script type="text/fetch-block-transform">
     console.log(input);

@@ -9,7 +9,7 @@ let spOpen = await fetchblocks.loadFromURI(
 let page1 = await spOpen.run({
   verbose: true,
   dataset: {
-    per_page: 1,
+    per_page: 100,
     page: 1,
   },
 });
@@ -21,6 +21,22 @@ let page2 = await spOpen.run({
     page: 2,
   },
 });
+let sp = await fetchblocks.loadFromURI(
+  new URL("../testdata/blocks/sp-to-csv.html", import.meta.url)
+);
+Deno.writeTextFileSync(
+  "./testdata/sp.csv",
+  await sp.run({
+    verbose: true,
+  })
+);
+
+console.log(page1.split("\n").length, page2.split("\n").length)
+Deno.writeTextFileSync(
+  "./testdata/spOpen.csv",
+  page1 + "\n" + page2
+);
+
 
 let vehicles = await fetchblocks.loadFromURI(
   new URL("../testdata/blocks/vehicles.html#base", import.meta.url)
@@ -82,21 +98,6 @@ Deno.writeTextFileSync("./testdata/getallmakes.json", JSON.stringify(await vehic
 //     2
 //   )
 // );
-
-let sp = await fetchblocks.loadFromURI(
-  new URL("../testdata/blocks/sp-to-csv.html", import.meta.url)
-);
-Deno.writeTextFileSync(
-  "./testdata/sp.csv",
-  await sp.run({
-    verbose: true,
-  })
-);
-
-Deno.writeTextFileSync(
-  "./testdata/spOpen.csv",
-  page1 + "\r\n" + page2.split("\r\n").slice(1).join("\r\n")
-);
 
 let aw = await fetchblocks.loadFromText(`
 [
