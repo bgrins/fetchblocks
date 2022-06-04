@@ -61535,10 +61535,14 @@ const UTILS_IMPORT_BASE = "https://raw.githubusercontent.com/bgrins/fetchblocks/
 let nanoid = (t1 = 21)=>crypto.getRandomValues(new Uint8Array(t1)).reduce((t, e938)=>t += (e938 &= 63) < 36 ? e938.toString(36) : e938 < 62 ? (e938 - 26).toString(36).toUpperCase() : e938 < 63 ? "_" : "-"
     , "")
 ;
-console.log(UTILS_IMPORT_BASE);
 function parseTransformAttribute(value, base) {
     let inlineScriptText;
     let externalScriptURL;
+    if (typeof value === "string") {
+        value = LIQUID_ENGINE.parseAndRenderSync(value, {
+            utils: UTILS
+        });
+    }
     try {
         externalScriptURL = new URL(value, base);
     } catch (_) {}
@@ -61569,18 +61573,13 @@ function parseTransformAttribute(value, base) {
         externalScriptURL
     };
 }
-function getURLForUtil(util) {
-    const mappings = {
-        noop: "./utils/noop.js",
-        md_to_json: "./utils/md_to_json.js",
-        jmespath: "./utils/jmespath.js",
-        csv_to_json: "./utils/csv_to_json.js",
-        json_to_csv: "./utils/json_to_csv.js"
-    };
-    if (mappings[util]) {
-        return new URL(mappings[util], UTILS_IMPORT_BASE);
-    }
-}
+const UTILS = {
+    noop: new URL("./utils/noop.js", UTILS_IMPORT_BASE).toString(),
+    md_to_json: new URL("./utils/md_to_json.js", UTILS_IMPORT_BASE).toString(),
+    jmespath: new URL("./utils/jmespath.js", UTILS_IMPORT_BASE).toString(),
+    csv_to_json: new URL("./utils/csv_to_json.js", UTILS_IMPORT_BASE).toString(),
+    json_to_csv: new URL("./utils/json_to_csv.js", UTILS_IMPORT_BASE).toString()
+};
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
 if (typeof CustomEvent == "undefined") {
@@ -61681,15 +61680,6 @@ blockLoaders.set("json", {
         return JSON.stringify(block1);
     }
 });
-blockLoaders.set("js", {
-    shouldHandle (content) {},
-    getLikelyBlocks (text) {
-        return;
-    },
-    async getBlock () {
-        throw new Error("JS Loader unimplemented");
-    }
-});
 blockLoaders.set("html", {
     shouldHandle (content) {
         return content.indexOf("<fetch-block") != -1;
@@ -61756,10 +61746,14 @@ blockLoaders.set("html", {
         ];
         for (let transform of htmlBlock.querySelectorAll("fetch-block-transform, script[type='text/fetch-block-transform']")){
             let transformBlock = Object.assign(gatherAttributes(transform));
-            if (transform.tagName == "SCRIPT") {
+            let externalScriptURL;
+            if (transform.getAttribute("src")) {
+                externalScriptURL = parseTransformAttribute(transform.getAttribute("src"), base).externalScriptURL;
+            }
+            if (externalScriptURL) {
+                transformBlock.transform = decodeURI(externalScriptURL);
+            } else {
                 transformBlock.transform = transform.textContent;
-                transformBlock.type = "script";
-                transformBlock.value = transform.textContent;
             }
             blocks.push(transformBlock);
         }
@@ -61790,7 +61784,8 @@ const fetchblocks = (()=>{
             let obj = blockLoader.getLikelyBlocks(text);
             return obj || [];
         },
-        async loadFromText (text, loader, options = {}) {
+        async loadFromText (text, options = {}) {
+            let { loader  } = options;
             if (!loader) {
                 loader = this.getLoaderForText(text);
             }
@@ -61829,7 +61824,8 @@ const fetchblocks = (()=>{
                 throw new Error(`Fetchblock couldn't be loaded from ${uri.toString()} - status ${response.status}`);
             }
             let text = await response.text();
-            let block4 = await this.loadFromText(text, loader, {
+            let block4 = await this.loadFromText(text, {
+                loader,
                 base: uri,
                 response
             });
@@ -61989,7 +61985,8 @@ class fetchblock extends EventTarget {
                     }
                     this.remoteBlocks.add(key);
                     if (key.startsWith("#") && this.sourceText) {
-                        parent = await fetchblocks.loadFromText(this.sourceText, this.loader, {
+                        parent = await fetchblocks.loadFromText(this.sourceText, {
+                            loader: this.loader,
                             id: key.substr(1)
                         });
                     } else {
@@ -62088,27 +62085,10 @@ class fetchblock extends EventTarget {
             let { transform  } = thisStep;
             if (!stepValue && !transform) {
                 console.error("TODO: Clean this up");
+                throw new Error("Invalid step - this should be thrown before we start running though");
             }
             if (transform) {
                 stepValue = await jsEval(transform, incomingValue, thisStep);
-            } else if (thisStep.type) {
-                if (!incomingValue) {
-                    let lastStep = plan[plan.currentStep - 1];
-                    incomingValue = lastStep.stepValue;
-                }
-                let transform = thisStep;
-                let scriptToRun;
-                if (getURLForUtil(transform.type)) {
-                    transform.src = getURLForUtil(transform.type).toString();
-                }
-                if (transform.src) {
-                    scriptToRun = getScriptForSrc(transform.src);
-                } else if (transform.value) {
-                    scriptToRun = transform.value;
-                } else {
-                    throw new Error("No script detected in " + JSON.stringify(transform));
-                }
-                stepValue = await jsEval(scriptToRun, incomingValue, transform);
             }
             thisStep.stepValue = stepValue;
             plan.currentStep = plan.currentStep + 1;

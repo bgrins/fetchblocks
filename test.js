@@ -220,7 +220,7 @@ Deno.test("fetchblocks - transform only", async () => {
     await fetchblocks.run(
       [
         {
-          transform: new URL("./utils/jmespath.js", import.meta.url),
+          transform: "{{ utils.jmespath }}",
           value: "a",
         },
       ],
@@ -228,6 +228,16 @@ Deno.test("fetchblocks - transform only", async () => {
         stubResponse: { a: "val" },
       }
     ),
+    "val"
+  );
+  assertEquals(
+    await (
+      await fetchblocks.loadFromText(`<fetch-block resource="http://example.com">
+    <fetch-block-transform src="{{ utils.jmespath }}" value="a"></fetchblock-transform>
+    </fetch-block>`)
+    ).run({
+      stubResponse: { a: "val" },
+    }),
     "val"
   );
   assertEquals(

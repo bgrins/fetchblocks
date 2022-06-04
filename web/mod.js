@@ -7,11 +7,17 @@ import {
   acornParse,
 } from "./deps.js";
 
-console.log(UTILS_IMPORT_BASE);
-
 export function parseTransformAttribute(value, base) {
   let inlineScriptText;
   let externalScriptURL;
+
+  // Allow for passing "transform": "{{ utils.jmespath }}"
+  if (typeof value === "string") {
+    value = LIQUID_ENGINE.parseAndRenderSync(value, {
+      utils: UTILS,
+    });
+  }
+
   try {
     externalScriptURL = new URL(value, base);
   } catch (_) {}
@@ -43,22 +49,16 @@ export function parseTransformAttribute(value, base) {
   return {
     inlineScriptText,
     externalScriptURL,
-  }
-}
-
-function getURLForUtil(util) {
-  const mappings = {
-    noop: "./utils/noop.js",
-    md_to_json: "./utils/md_to_json.js",
-    jmespath: "./utils/jmespath.js",
-    csv_to_json: "./utils/csv_to_json.js",
-    json_to_csv: "./utils/json_to_csv.js",
   };
-
-  if (mappings[util]) {
-    return new URL(mappings[util], UTILS_IMPORT_BASE);
-  }
 }
+
+const UTILS = {
+  noop: new URL("./utils/noop.js", UTILS_IMPORT_BASE).toString(),
+  md_to_json: new URL("./utils/md_to_json.js", UTILS_IMPORT_BASE).toString(),
+  jmespath: new URL("./utils/jmespath.js", UTILS_IMPORT_BASE).toString(),
+  csv_to_json: new URL("./utils/csv_to_json.js", UTILS_IMPORT_BASE).toString(),
+  json_to_csv: new URL("./utils/json_to_csv.js", UTILS_IMPORT_BASE).toString(),
+};
 
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER =
@@ -114,7 +114,7 @@ export function getScriptForSrc(src) {
 
 const networkLoaders = new Map();
 
-// Todo: integrate with API?
+// Todo: integrate with APIs like this?
 // networkLoaders.set("gist", {
 //   shouldHandle(uri) {
 //     return uri.host == "gist.github.com"; // && uri.pathname looks like a gist;
@@ -185,7 +185,10 @@ blockLoaders.set("json", {
           step.block = decodeURI(new URL(step.block, base).toString());
         }
         if (step.transform) {
-          let { externalScriptURL } = parseTransformAttribute(step.transform, base);
+          let { externalScriptURL } = parseTransformAttribute(
+            step.transform,
+            base
+          );
           if (externalScriptURL) {
             step.transform = decodeURI(externalScriptURL.toString());
           }
@@ -199,16 +202,19 @@ blockLoaders.set("json", {
     return JSON.stringify(block);
   },
 });
-blockLoaders.set("js", {
-  shouldHandle(content) {},
-  getLikelyBlocks(text) {
-    return;
-  },
-  async getBlock() {
-    // Todo: Should this be an ESM?
-    throw new Error("JS Loader unimplemented");
-  },
-});
+
+// Todo: fetch this and parse AST looking for some known export like FETCHBLOCKS
+// blockLoaders.set("js", {
+//   shouldHandle(content) {},
+//   getLikelyBlocks(text) {
+//     return;
+//   },
+//   async getBlock() {
+//     // Todo: Should this be an ESM?
+//     throw new Error("JS Loader unimplemented");
+//   },
+// });
+
 blockLoaders.set("html", {
   shouldHandle(content) {
     return content.indexOf("<fetch-block") != -1;
@@ -291,21 +297,28 @@ blockLoaders.set("html", {
       "fetch-block-transform, script[type='text/fetch-block-transform']"
     )) {
       let transformBlock = Object.assign(gatherAttributes(transform));
-
-      // TODO: Handle remote scripts as well
-      if (transform.tagName == "SCRIPT") {
-        transformBlock.transform = transform.textContent;
-        // Todo: remove this when the migration from type to transform is done:
-        transformBlock.type = "script";
-        transformBlock.value = transform.textContent;
+      let externalScriptURL;
+      if (transform.getAttribute("src")) {
+        externalScriptURL = parseTransformAttribute(
+          transform.getAttribute("src"),
+          base
+        ).externalScriptURL;
       }
+
+      if (externalScriptURL) {
+        transformBlock.transform = decodeURI(externalScriptURL);
+      } else {
+        transformBlock.transform = transform.textContent;
+      }
+
+      // Todo: remove this when the migration from type to transform is done:
+      // transformBlock.type = "script";
+      // transformBlock.value = transform.textContent;
+
       blocks.push(transformBlock);
     }
 
     return blocks;
-
-    // if url, do a fetch
-    // parse HTML. Copy stuff from import-components.js
   },
 });
 
@@ -339,7 +352,8 @@ const fetchblocks = (() => {
     // We'll attempt to detect the appropriate loader, else you can
     // pass them in (default values "js", "html", "json" or you can
     // make your own with `fetchblocks.loader.set("foo", async (input) => {}))`
-    async loadFromText(text, loader, options = {}) {
+    async loadFromText(text, options = {}) {
+      let { loader } = options;
       if (!loader) {
         loader = this.getLoaderForText(text);
       }
@@ -392,9 +406,9 @@ const fetchblocks = (() => {
       }
       let text = await response.text();
       let block = await this.loadFromText(text, {
+        loader,
         base: uri,
         response,
-        loader
       });
 
       return block;
@@ -596,13 +610,10 @@ class fetchblock extends EventTarget {
           if (key.startsWith("#") && this.sourceText) {
             // Optimization - if we have a local link within the same file then reuse
             // the same text rather than hitting the network again.
-            parent = await fetchblocks.loadFromText(
-              this.sourceText,
-              {
-                loader: this.loader,
-                id: key.substr(1),
-              }
-            );
+            parent = await fetchblocks.loadFromText(this.sourceText, {
+              loader: this.loader,
+              id: key.substr(1),
+            });
           } else {
             parent = await fetchblocks.loadFromURI(parent);
           }
@@ -620,45 +631,15 @@ class fetchblock extends EventTarget {
         }
         flattened.push(step);
       } else if (step.transform) {
-
-        let { inlineScriptText, externalScriptURL } = parseTransformAttribute(step.transform);
+        let { inlineScriptText, externalScriptURL } = parseTransformAttribute(
+          step.transform
+        );
         let scriptToRun;
         if (externalScriptURL) {
           scriptToRun = getScriptForSrc(externalScriptURL.toString());
         } else if (inlineScriptText) {
           scriptToRun = inlineScriptText;
         }
-
-        // // let scriptToRun;
-        // let url;
-        // try {
-        //   url = new URL(step.transform);
-        // } catch (_) {}
-        // if (url) {
-        //   scriptToRun = getScriptForSrc(url.toString());
-        // } else {
-        //   let scriptParses = true;
-        //   try {
-        //     acornParse(step.transform, {
-        //       ecmaVersion: 2022,
-        //       sourceType: "script",
-        //       allowReturnOutsideFunction: true,
-        //     });
-        //   } catch (e) {
-        //     try {
-        //       acornParse(step.transform, {
-        //         ecmaVersion: 2022,
-        //         sourceType: "module",
-        //       });
-        //     } catch (e) {
-        //       scriptParses = false;
-        //     }
-        //   }
-
-        //   if (scriptParses) {
-        //     scriptToRun = step.transform;
-        //   }
-        // }
 
         if (!scriptToRun) {
           throw new Error(
@@ -772,34 +753,36 @@ class fetchblock extends EventTarget {
       let { transform } = thisStep;
       if (!stepValue && !transform) {
         console.error("TODO: Clean this up");
-        // throw new Error("Invalid step - this should be thrown before we start running though")
+        throw new Error(
+          "Invalid step - this should be thrown before we start running though"
+        );
       }
 
       if (transform) {
         stepValue = await jsEval(transform, incomingValue, thisStep);
       }
       // Todo: rename "type" to "transform" and make handling src etc more consistent
-      else if (thisStep.type) {
-        if (!incomingValue) {
-          let lastStep = plan[plan.currentStep - 1];
-          incomingValue = lastStep.stepValue;
-        }
-        let transform = thisStep;
-        let scriptToRun;
-        if (getURLForUtil(transform.type)) {
-          transform.src = getURLForUtil(transform.type).toString();
-        }
+      // else if (thisStep.type) {
+      //   if (!incomingValue) {
+      //     let lastStep = plan[plan.currentStep - 1];
+      //     incomingValue = lastStep.stepValue;
+      //   }
+      //   let transform = thisStep;
+      //   let scriptToRun;
+      //   if (getURLForUtil(transform.type)) {
+      //     transform.src = getURLForUtil(transform.type).toString();
+      //   }
 
-        if (transform.src) {
-          scriptToRun = getScriptForSrc(transform.src);
-        } else if (transform.value) {
-          scriptToRun = transform.value;
-        } else {
-          throw new Error("No script detected in " + JSON.stringify(transform));
-        }
+      //   if (transform.src) {
+      //     scriptToRun = getScriptForSrc(transform.src);
+      //   } else if (transform.value) {
+      //     scriptToRun = transform.value;
+      //   } else {
+      //     throw new Error("No script detected in " + JSON.stringify(transform));
+      //   }
 
-        stepValue = await jsEval(scriptToRun, incomingValue, transform);
-      }
+      //   stepValue = await jsEval(scriptToRun, incomingValue, transform);
+      // }
       thisStep.stepValue = stepValue;
       plan.currentStep = plan.currentStep + 1;
       this.dispatchEvent(

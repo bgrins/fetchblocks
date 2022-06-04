@@ -34,7 +34,7 @@ const EXAMPLES = [
     mode: "application/json",
     content: `[
   { "resource": "https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF" },
-  { "type": "script", "value": "return input.hex;" }
+  { "transform": "return input.hex;" }
 ]`,
   },
   {
@@ -45,8 +45,8 @@ const EXAMPLES = [
     "resource":
       "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json"
   },
-  { "type": "jmespath", "value": "Results[].{name: Make_Name, id: Make_ID}" },
-  { "type": "jmespath", "value": "[?name == \`ASTON MARTIN\`]" }
+  { "transform": "{{ utils.jmespath }}", "value": "Results[].{name: Make_Name, id: Make_ID}" },
+  { "transform": "{{ utils.jmespath }}", "value": "[?name == \`ASTON MARTIN\`]" }
 ]`,
   },
 
@@ -55,8 +55,8 @@ const EXAMPLES = [
     mode: "application/json",
     content: `[
     { "resource": "https://api.github.com/users/{{dataset.user}}/subscriptions?per_page={{ dataset.per_page | default: 5 }}" },
-    { "type": "jmespath", "value": "[].{id: id, node_id: node_id, name: name, full_name: full_name, private: private, owner: owner.login, html_url: html_url, description: description, created_at: created_at, updated_at: updated_at, pushed_at: pushed_at, homepage: homepage, size: size, stargazers_count: stargazers_count, watchers_count: watchers_count, language: language, has_wiki: has_wiki, has_pages: has_pages, forks_count: forks_count, archived: archived, disabled: disabled, open_issues_count: open_issues_count, topics: topics, forks: forks, open_issues: open_issues, watchers: watchers }" },
-    { "type": "json_to_csv" }
+    { "transform": "{{ utils.jmespath }}", "value": "[].{id: id, node_id: node_id, name: name, full_name: full_name, private: private, owner: owner.login, html_url: html_url, description: description, created_at: created_at, updated_at: updated_at, pushed_at: pushed_at, homepage: homepage, size: size, stargazers_count: stargazers_count, watchers_count: watchers_count, language: language, has_wiki: has_wiki, has_pages: has_pages, forks_count: forks_count, archived: archived, disabled: disabled, open_issues_count: open_issues_count, topics: topics, forks: forks, open_issues: open_issues, watchers: watchers }" },
+    { "transform": "{{ utils.json_to_csv }}" }
   ]`,
     defaultDataset: {
       per_page: 6,
@@ -67,7 +67,7 @@ const EXAMPLES = [
     name: "HTML block",
     mode: "text/html",
     content: `<fetch-block resource="https://x-colors.herokuapp.com/api/hex2rgb?value=FFFFFF">
-  <fetch-block-transform type="jmespath" value="hex"></fetch-block-transform>
+  <fetch-block-transform src="{{ utils.jmespath }}" value="hex"></fetch-block-transform>
   <script type="text/fetch-block-transform">
     return input.toLowerCase();
   </script>
@@ -80,7 +80,7 @@ const EXAMPLES = [
     content: `{
        "public_activity": [
          { "resource": "https://api.github.com/gists/public" },
-         { "type": "script", "value": "return input.map(gist => Object.keys(gist.files).map(key => gist.files[key].filename));" }
+         { "transform": "return input.map(gist => Object.keys(gist.files).map(key => gist.files[key].filename));" }
  
        ]
      }`,
@@ -90,7 +90,7 @@ const EXAMPLES = [
     mode: "application/json",
     content: `[
   { "resource": "https://x-colors.herokuapp.com/api/random/{{dataset.hue}}" },
-  { "type": "jmespath", "value": "hex" }
+  { "transform": "{{ utils.jmespath }}", "value": "hex" }
 ]`,
     defaultDataset: {
       hex: "00FF00",
@@ -117,18 +117,18 @@ const EXAMPLES = [
       "block": "#top_stars"
     },
     {
-      "type": "md_to_json"
+      "transform": "{{ utils.md_to_json }}"
     },
     {
-      "type": "jmespath",
+      "transform": "{{ utils.jmespath }}",
       "value": "[].rows[0:{{dataset.num_rows}}]"
     },
     {
-      "type": "jmespath",
+      "transform": "{{ utils.jmespath }}",
       "value": "[][1:4].text"
     },
     {
-      "type": "json_to_csv"
+      "transform": "{{ utils.json_to_csv }}"
     }
   ]
 }`,

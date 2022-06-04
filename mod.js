@@ -7,11 +7,17 @@ import {
   acornParse,
 } from "./deps.js";
 
-console.log(UTILS_IMPORT_BASE);
-
 export function parseTransformAttribute(value, base) {
   let inlineScriptText;
   let externalScriptURL;
+
+  // Allow for passing "transform": "{{ utils.jmespath }}"
+  if (typeof value === "string") {
+    value = LIQUID_ENGINE.parseAndRenderSync(value, {
+      utils: UTILS,
+    });
+  }
+
   try {
     externalScriptURL = new URL(value, base);
   } catch (_) {}
@@ -46,19 +52,13 @@ export function parseTransformAttribute(value, base) {
   };
 }
 
-function getURLForUtil(util) {
-  const mappings = {
-    noop: "./utils/noop.js",
-    md_to_json: "./utils/md_to_json.js",
-    jmespath: "./utils/jmespath.js",
-    csv_to_json: "./utils/csv_to_json.js",
-    json_to_csv: "./utils/json_to_csv.js",
-  };
-
-  if (mappings[util]) {
-    return new URL(mappings[util], UTILS_IMPORT_BASE);
-  }
-}
+const UTILS = {
+  noop: new URL("./utils/noop.js", UTILS_IMPORT_BASE).toString(),
+  md_to_json: new URL("./utils/md_to_json.js", UTILS_IMPORT_BASE).toString(),
+  jmespath: new URL("./utils/jmespath.js", UTILS_IMPORT_BASE).toString(),
+  csv_to_json: new URL("./utils/csv_to_json.js", UTILS_IMPORT_BASE).toString(),
+  json_to_csv: new URL("./utils/json_to_csv.js", UTILS_IMPORT_BASE).toString(),
+};
 
 const LIQUID_ENGINE = new Liquid();
 const IS_WORKER =
@@ -297,13 +297,20 @@ blockLoaders.set("html", {
       "fetch-block-transform, script[type='text/fetch-block-transform']"
     )) {
       let transformBlock = Object.assign(gatherAttributes(transform));
+      let externalScriptURL;
       if (transform.getAttribute("src")) {
-        transformBlock.transform = decodeURI(
-          new URL(transform.getAttribute("src"), base).toString()
-        );
+        externalScriptURL = parseTransformAttribute(
+          transform.getAttribute("src"),
+          base
+        ).externalScriptURL;
+      }
+
+      if (externalScriptURL) {
+        transformBlock.transform = decodeURI(externalScriptURL);
       } else {
         transformBlock.transform = transform.textContent;
       }
+
       // Todo: remove this when the migration from type to transform is done:
       // transformBlock.type = "script";
       // transformBlock.value = transform.textContent;
