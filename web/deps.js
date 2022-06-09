@@ -12,7 +12,7 @@ export { execInSandbox } from "https://deno.land/x/esm_sandbox_eval@0.1.0/mod.js
 export { DOMParser } from "https://esm.sh/linkedom";
 
 // Todo: ship these on localhost or just bundle them up and ship them as importMap to eval for web
-export const UTILS_IMPORT_BASE = "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
+export const UTILS_IMPORT_BASE = "https://deno.land/x/fetchblocks/";
 
 // https://github.com/ai/nanoid/:
 export let nanoid = (t = 21) =>

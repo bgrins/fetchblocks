@@ -61531,7 +61531,7 @@ function cn() {
     R7();
 }
 A6(cn, V4).prototype = V4.prototype;
-const UTILS_IMPORT_BASE = "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/";
+const UTILS_IMPORT_BASE = "https://deno.land/x/fetchblocks/";
 let nanoid = (t1 = 21)=>crypto.getRandomValues(new Uint8Array(t1)).reduce((t, e938)=>t += (e938 &= 63) < 36 ? e938.toString(36) : e938 < 62 ? (e938 - 26).toString(36).toUpperCase() : e938 < 63 ? "_" : "-"
     , "")
 ;

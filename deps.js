@@ -10,13 +10,9 @@ const CONFIG = configSync();
 
 export { parse as acornParse } from "https://esm.sh/acorn@8.7.1";
 
-// Set
-// USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT=true
-// Todo: change this to a remote endpoint - env USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT
-export const UTILS_IMPORT_BASE =
-  CONFIG.USE_RELATIVE_IMPORTS_FOR_DEVELOPMENT === "true"
-    ? import.meta.url
-    : "https://raw.githubusercontent.com/bgrins/fetchblocks/wip/"; 
+// To load from the file system for testing:
+// export const UTILS_IMPORT_BASE = import.meta.url;
+export const UTILS_IMPORT_BASE = "https://deno.land/x/fetchblocks/";
 
 // export { DOMParser } from "https://unpkg.com/linkedom/worker";
 // export { DOMParser } from "https://esm.sh/linkedom?target=es2022&bundle";
