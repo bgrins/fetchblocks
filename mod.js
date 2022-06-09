@@ -78,7 +78,7 @@ export function jsEval(
   str,
   input,
   options,
-  { importMap = {}, verbose = true } = {}
+  { importMap = {}, verbose = false } = {}
 ) {
   return execInSandbox(str, {
     verbose,
@@ -665,6 +665,7 @@ class fetchblock extends EventTarget {
   async plan(options = {}) {
     let plan = await this.flatten();
     let dataset = options.dataset || {};
+    let { verbose } = options;
 
     let secrets = Object.entries(dataset).filter(
       ([k, v]) => typeof v == "object" && v.hasOwnProperty("value")
@@ -759,7 +760,9 @@ class fetchblock extends EventTarget {
       }
 
       if (transform) {
-        stepValue = await jsEval(transform, incomingValue, thisStep);
+        stepValue = await jsEval(transform, incomingValue, thisStep, {
+          verbose,
+        });
       }
       // Todo: rename "type" to "transform" and make handling src etc more consistent
       // else if (thisStep.type) {

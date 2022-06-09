@@ -1,7 +1,7 @@
 // export { Liquid } from "https://cdn.jsdelivr.net/npm/liquidjs@9.37.0/dist/liquid.browser.esm.js";
 export { Liquid } from "https://esm.sh/liquidjs";
 
-export { execInSandbox } from "https://deno.land/x/esm_sandbox_eval@0.1.0/mod.js";
+export { execInSandbox } from "https://deno.land/x/esm_sandbox_eval@0.1.2/mod.js";
 // export { execInSandbox } from "../js-sandbox/mod.js";
 
 export { parse as acornParse } from "https://esm.sh/acorn@8.7.1";
