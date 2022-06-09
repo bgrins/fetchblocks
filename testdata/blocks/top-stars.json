@@ -1,0 +1,19 @@
+[
+  {
+    "resource": "https://raw.githubusercontent.com/EvanLi/Github-Ranking/650b530498eace49eaa55bcf4d97178ac67399fe/Top100/Top-100-stars.md"
+  },
+  {
+    "transform": "../../utils/md_to_json.js"
+  },
+  {
+    "transform": "../../utils/jmespath.js",
+    "value": "[].rows[0:{{dataset.num_rows}}]"
+  },
+  {
+    "transform": "../../utils/jmespath.js",
+    "value": "[][1:4].text"
+  },
+  {
+    "transform": "../../utils/json_to_csv.js"
+  }
+]

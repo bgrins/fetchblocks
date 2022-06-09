@@ -1,0 +1,100 @@
+1253841702,COEP reflection,https://api.github.com/repos/mozilla/standards-positions/issues/645,0,2022-05-31T13:06:34Z,2022-05-31T13:06:34Z,ArthurSonzogni,
+1253706553,Request for position: Safelist 'ipfs' and 'ipns' schemes,https://api.github.com/repos/mozilla/standards-positions/issues/644,1,2022-05-31T11:09:08Z,2022-05-31T11:09:08Z,javifernandez,
+1251252727,CSS Overscroll Fixed Elements,https://api.github.com/repos/mozilla/standards-positions/issues/643,0,2022-05-27T20:40:24Z,2022-05-27T20:40:24Z,bmathwig,
+1247974602,MediaTrackConstraintSet.displaySurface,https://api.github.com/repos/mozilla/standards-positions/issues/642,0,2022-05-25T11:45:04Z,2022-05-25T11:45:04Z,eladalon1983,
+1247908293,MediaTrackSupportedConstraints.suppressLocalAudioPlayback,https://api.github.com/repos/mozilla/standards-positions/issues/641,0,2022-05-25T10:43:36Z,2022-05-25T10:43:36Z,eladalon1983,
+1245038832,DisplayMediaStreamConstraints.selfBrowserSurface,https://api.github.com/repos/mozilla/standards-positions/issues/639,0,2022-05-23T11:45:40Z,2022-05-23T11:45:40Z,eladalon1983,
+1244988968,DisplayMediaStreamConstraints.systemAudio,https://api.github.com/repos/mozilla/standards-positions/issues/638,0,2022-05-23T11:06:10Z,2022-05-23T11:06:10Z,eladalon1983,
+1230248032,Multi-Screen Window Placement: Fullscreen Companion Window,https://api.github.com/repos/mozilla/standards-positions/issues/636,0,2022-05-09T21:03:05Z,2022-05-20T23:56:01Z,morsssss,
+1227131479,Element.isVisible method,https://api.github.com/repos/mozilla/standards-positions/issues/634,0,2022-05-05T20:13:22Z,2022-05-19T22:50:00Z,josepharhar,
+1226782689,Request for position: WebDriver-BiDi,https://api.github.com/repos/mozilla/standards-positions/issues/632,0,2022-05-05T14:52:35Z,2022-05-05T19:23:12Z,juliandescottes,
+1216455807,Request for position: Focusgroup,https://api.github.com/repos/mozilla/standards-positions/issues/631,0,2022-04-26T20:41:36Z,2022-04-26T20:41:36Z,benbeaudry,
+1204052895,Request for position: Web App Dark Mode,https://api.github.com/repos/mozilla/standards-positions/issues/630,0,2022-04-14T05:21:54Z,2022-05-02T23:30:23Z,loubrett,
+1202212390,File Handling API (revisited),https://api.github.com/repos/mozilla/standards-positions/issues/629,0,2022-04-12T18:01:19Z,2022-04-12T18:01:19Z,evanstade,
+1193033986,Anonymous iframe,https://api.github.com/repos/mozilla/standards-positions/issues/628,0,2022-04-05T11:45:45Z,2022-05-10T17:04:40Z,ArthurSonzogni,
+1184103167,Request for Position: Animated AVIF,https://api.github.com/repos/mozilla/standards-positions/issues/627,1,2022-03-28T23:21:31Z,2022-04-01T19:23:37Z,baumanj,
+1181114492,Request for position: CSS object-view-box and object-overflow,https://api.github.com/repos/mozilla/standards-positions/issues/626,1,2022-03-25T18:35:57Z,2022-03-25T22:50:58Z,khushalsagar,
+1180774756,@scope,https://api.github.com/repos/mozilla/standards-positions/issues/625,0,2022-03-25T13:08:08Z,2022-03-25T15:13:19Z,andruud,
+1178493054,Request for position: Safelist 'notes' scheme,https://api.github.com/repos/mozilla/standards-positions/issues/624,0,2022-03-23T18:15:20Z,2022-03-23T18:15:20Z,DConmy,
+1176822698,Control screen brightness 🔆,https://api.github.com/repos/mozilla/standards-positions/issues/623,3,2022-03-22T13:54:17Z,2022-04-19T19:17:32Z,beaufortfrancois,
+1172486407,Request for Position: Topics API,https://api.github.com/repos/mozilla/standards-positions/issues/622,2,2022-03-17T15:38:32Z,2022-05-30T00:16:52Z,jkarlin,proposal
+1170878987,Request for position: Region Capture,https://api.github.com/repos/mozilla/standards-positions/issues/621,1,2022-03-16T11:14:44Z,2022-03-17T17:00:48Z,eladalon1983,w3c
+1170433476,Request for Mozilla Position on an Emerging Web Specification: Speculation Rules (Prefetch),https://api.github.com/repos/mozilla/standards-positions/issues/620,0,2022-03-16T01:30:37Z,2022-03-16T01:30:37Z,jeremyroman,
+1168951002,MediaCapabilities API extended to WebRTC,https://api.github.com/repos/mozilla/standards-positions/issues/619,0,2022-03-14T21:54:00Z,2022-03-16T13:57:25Z,drkron,
+1165747598,FedCM (was WebID),https://api.github.com/repos/mozilla/standards-positions/issues/618,0,2022-03-10T21:31:47Z,2022-03-21T16:08:22Z,samuelgoto,w3c-cg
+1154435694,Request for position: Capture Handle Identity,https://api.github.com/repos/mozilla/standards-positions/issues/615,0,2022-02-28T18:54:10Z,2022-03-04T15:17:04Z,eladalon1983,w3c-cg
+1131720878,Request for position: prerendering,https://api.github.com/repos/mozilla/standards-positions/issues/613,0,2022-02-11T04:50:14Z,2022-02-11T04:50:14Z,nyaxt,
+1124463914,<search> element,https://api.github.com/repos/mozilla/standards-positions/issues/610,0,2022-02-04T17:51:08Z,2022-02-07T09:22:23Z,domenic,whatwg
+1102758775,"Request for position: blocking=""render"" attribute on <link>, <script> and <style>",https://api.github.com/repos/mozilla/standards-positions/issues/608,0,2022-01-14T01:56:36Z,2022-01-24T15:29:10Z,xiaochengh,whatwg
+1094428036,Request for position: mix-blend-mode: plus-lighter,https://api.github.com/repos/mozilla/standards-positions/issues/607,0,2022-01-05T14:46:58Z,2022-01-05T14:46:58Z,vmpstr,
+1081071433,[css-values-4] Small/large/dynamic/logical viewport units,https://api.github.com/repos/mozilla/standards-positions/issues/605,2,2021-12-15T13:56:40Z,2021-12-16T08:10:45Z,andruud,w3c
+1077465893,"Request for Position: Allow infinity, -infinity and NaN in CSS calc()",https://api.github.com/repos/mozilla/standards-positions/issues/602,0,2021-12-11T08:20:49Z,2021-12-13T08:12:06Z,DevSDK,w3c
+1066315726,Request for position: Markup based Client Hints delegation for third-party content,https://api.github.com/repos/mozilla/standards-positions/issues/596,0,2021-11-29T17:38:48Z,2022-03-16T09:24:13Z,arichiv,
+1058999432,Request for position: minPinLength in WebAuthn,https://api.github.com/repos/mozilla/standards-positions/issues/595,0,2021-11-19T23:47:20Z,2021-11-22T08:11:00Z,agl,
+1046279237,preserve-parent-color value for forced-color-adjust CSS property,https://api.github.com/repos/mozilla/standards-positions/issues/591,0,2021-11-05T22:15:15Z,2022-05-05T00:10:28Z,sartang,
+1044257440,Request for Position: Subresource loading with Web Bundles,https://api.github.com/repos/mozilla/standards-positions/issues/590,0,2021-11-04T00:53:39Z,2022-05-25T07:53:41Z,hayatoito,
+1020451065,Request for Position: HDR CSS Media Queries,https://api.github.com/repos/mozilla/standards-positions/issues/584,1,2021-10-07T20:50:33Z,2021-10-12T21:05:05Z,willcassella,w3c
+1013299053,Request for position on MSE-for-WebCodecs,https://api.github.com/repos/mozilla/standards-positions/issues/582,0,2021-10-01T12:42:43Z,2022-05-19T18:11:20Z,wolenetz,w3c
+978474365,Request for position on css-easing-2 linear() syntax,https://api.github.com/repos/mozilla/standards-positions/issues/571,0,2021-08-24T20:48:52Z,2021-08-26T04:40:37Z,dholbert,
+978123557,Request for position: Secure Payment Confirmation,https://api.github.com/repos/mozilla/standards-positions/issues/570,0,2021-08-24T13:51:20Z,2022-01-30T15:08:27Z,stephenmcgruer,
+975678251,Network Information API reboot: request for early feedback,https://api.github.com/repos/mozilla/standards-positions/issues/569,0,2021-08-20T14:47:13Z,2021-09-07T15:22:13Z,tomayac,
+973444470,Request for Position: Web App Launch Handling,https://api.github.com/repos/mozilla/standards-positions/issues/567,2,2021-08-18T09:06:49Z,2021-08-24T08:04:13Z,alancutter,
+970678866,Request for Position: URLPattern,https://api.github.com/repos/mozilla/standards-positions/issues/566,0,2021-08-13T20:05:03Z,2021-09-09T14:11:30Z,wanderview,whatwg|proposal
+970540432,Request for Position: Capability Delegation,https://api.github.com/repos/mozilla/standards-positions/issues/565,1,2021-08-13T16:09:39Z,2022-05-18T12:42:24Z,mustaqahmed,
+970435768,Support for font-family: math,https://api.github.com/repos/mozilla/standards-positions/issues/564,0,2021-08-13T14:09:56Z,2021-09-06T11:50:12Z,fred-wang,w3c
+964071187,`supports(<font-technology>)`extended syntax for `@font-face`,https://api.github.com/repos/mozilla/standards-positions/issues/563,1,2021-08-09T14:44:18Z,2021-08-09T14:52:26Z,drott,
+950883742,Request for Position: EyeDropper API,https://api.github.com/repos/mozilla/standards-positions/issues/557,2,2021-07-22T17:21:33Z,2021-09-28T06:25:48Z,ipopescu93,w3c-cg
+948075290,"Request for position on CSS tree-scoped at-rule names and references (for @font-face, @keyframes, etc.)",https://api.github.com/repos/mozilla/standards-positions/issues/556,0,2021-07-19T22:24:35Z,2021-07-20T12:11:52Z,xiaochengh,
+947334325,Request for position on Web App Note Taking,https://api.github.com/repos/mozilla/standards-positions/issues/555,0,2021-07-19T07:03:15Z,2021-07-19T07:15:17Z,phoglenix,
+946498508,Gamepad API button and axis events,https://api.github.com/repos/mozilla/standards-positions/issues/554,0,2021-07-16T18:10:00Z,2021-07-16T18:10:00Z,nondebug,
+941506726,CSS Color Module Level 4,https://api.github.com/repos/mozilla/standards-positions/issues/551,1,2021-07-11T18:14:48Z,2021-07-11T18:14:48Z,leo60228,
+939277306,Request for position: PWAs as URL Handlers,https://api.github.com/repos/mozilla/standards-positions/issues/550,0,2021-07-07T21:27:05Z,2021-08-31T19:47:45Z,LuHuangMSFT,
+936129808,Request for position on Clipboard API SVG support,https://api.github.com/repos/mozilla/standards-positions/issues/549,0,2021-07-03T00:29:30Z,2021-09-29T13:09:53Z,dway123,
+934547082,CSS highlight inheritance (css-pseudo #highlight-cascade),https://api.github.com/repos/mozilla/standards-positions/issues/548,0,2021-07-01T08:11:16Z,2021-10-28T12:03:52Z,delan,w3c
+934139270,Request for position on MSE-in-Workers,https://api.github.com/repos/mozilla/standards-positions/issues/547,1,2021-06-30T21:24:44Z,2022-02-16T22:56:34Z,wolenetz,w3c
+922956546,Scalable Video Coding (SVC) Extension for WebRTC,https://api.github.com/repos/mozilla/standards-positions/issues/544,0,2021-06-16T18:35:01Z,2021-10-19T14:36:07Z,jesup,
+920795517,App history API,https://api.github.com/repos/mozilla/standards-positions/issues/543,0,2021-06-14T21:35:54Z,2022-03-08T19:51:38Z,domenic,whatwg
+920637417,Multi-Screen Window Placement,https://api.github.com/repos/mozilla/standards-positions/issues/542,0,2021-06-14T17:44:30Z,2022-05-18T06:56:17Z,morsssss,
+916078913,preferCurrentTab,https://api.github.com/repos/mozilla/standards-positions/issues/538,0,2021-06-09T11:08:29Z,2021-06-22T22:21:25Z,eladalon1983,
+910325439,HTMLMediaElement controlsList,https://api.github.com/repos/mozilla/standards-positions/issues/534,0,2021-06-03T09:55:12Z,2021-06-04T17:38:47Z,beaufortfrancois,
+897310575,Virtual Keyboard Control,https://api.github.com/repos/mozilla/standards-positions/issues/531,5,2021-05-20T19:11:07Z,2022-04-29T10:37:40Z,snianu,
+893416073,Request for position on Window Controls Overlay,https://api.github.com/repos/mozilla/standards-positions/issues/529,0,2021-05-17T14:52:57Z,2021-08-13T01:04:28Z,diekus,
+891011314,Request for Mozilla Position on :has pseudo class,https://api.github.com/repos/mozilla/standards-positions/issues/528,2,2021-05-13T12:49:06Z,2022-05-24T04:10:28Z,byung-woo,w3c
+889825826,User Preference Media Features Client Hints Headers,https://api.github.com/repos/mozilla/standards-positions/issues/526,3,2021-05-12T08:36:16Z,2021-08-23T18:27:14Z,tomayac,
+888568155,"Pickling for Async Clipboard API ",https://api.github.com/repos/mozilla/standards-positions/issues/525,2,2021-05-11T20:39:01Z,2021-12-17T13:40:53Z,snianu,
+885202376,Hide shipped-and-finished standards,https://api.github.com/repos/mozilla/standards-positions/issues/524,0,2021-05-10T21:59:57Z,2021-05-11T13:19:06Z,saschanaz,
+884156637,Add JPEG XL entry,https://api.github.com/repos/mozilla/standards-positions/issues/523,4,2021-05-10T12:50:30Z,2022-02-22T09:44:26Z,saschanaz,
+878529179,Request for position: JPEG XL,https://api.github.com/repos/mozilla/standards-positions/issues/522,41,2021-05-07T06:53:22Z,2021-12-30T16:52:54Z,saschanaz,
+876717805,Request for position: Compute Pressure API,https://api.github.com/repos/mozilla/standards-positions/issues/521,0,2021-05-05T18:18:35Z,2021-05-06T07:26:58Z,oyiptong,
+874208825,Request for Position: Declarative Link Capturing,https://api.github.com/repos/mozilla/standards-positions/issues/520,0,2021-05-03T04:09:01Z,2021-05-06T07:12:55Z,mgiuca,
+873720768,CanvasRenderingContext2D API Improvements,https://api.github.com/repos/mozilla/standards-positions/issues/519,1,2021-05-01T16:52:47Z,2021-06-12T01:10:38Z,mysteryDate,whatwg
+871199950,Request for Position: Delegated Ink Trails,https://api.github.com/repos/mozilla/standards-positions/issues/518,0,2021-04-29T16:10:43Z,2021-06-30T19:55:59Z,bmathwig,
+870678160,Deprecate cross-origin module sharing.,https://api.github.com/repos/mozilla/standards-positions/issues/517,0,2021-04-29T06:58:21Z,2022-05-20T11:38:27Z,mikewest,w3c-cg
+861888398,<meta media> (for <meta name=theme-color>),https://api.github.com/repos/mozilla/standards-positions/issues/514,0,2021-04-19T20:52:07Z,2021-04-19T20:53:11Z,hober,
+859101311,Request for position: contain-intrinsic-size auto & longhands,https://api.github.com/repos/mozilla/standards-positions/issues/512,0,2021-04-15T17:35:19Z,2021-11-11T00:56:01Z,cbiesinger,w3c
+850806891,ALPS + ACCEPT_CH HTTP/2 and HTTP/3 frames,https://api.github.com/repos/mozilla/standards-positions/issues/510,0,2021-04-05T23:23:54Z,2022-03-16T09:24:13Z,miketaylr,
+843184474,adaptivePtime property for RTCRtpEncodingParameters,https://api.github.com/repos/mozilla/standards-positions/issues/508,0,2021-03-29T09:38:12Z,2021-04-22T00:27:03Z,jakobivarsson,
+842881291,Handwriting Recognition API,https://api.github.com/repos/mozilla/standards-positions/issues/507,1,2021-03-29T00:58:46Z,2021-03-29T00:58:46Z,wacky6,
+841535796,Federated Learning of Cohorts,https://api.github.com/repos/mozilla/standards-positions/issues/506,1,2021-03-26T02:36:42Z,2021-03-26T02:36:42Z,outloudvi,
+841518281,Managed Configuraion for Web Apps,https://api.github.com/repos/mozilla/standards-positions/issues/505,0,2021-03-26T01:54:08Z,2021-03-26T01:54:08Z,Ananubis,
+840305107,Add video conferencing actions to the Media Session API spec,https://api.github.com/repos/mozilla/standards-positions/issues/504,0,2021-03-24T23:14:40Z,2021-03-25T08:15:54Z,steimelchrome,
+829908593,Honor media HTML attribute for link manifest,https://api.github.com/repos/mozilla/standards-positions/issues/500,0,2021-03-12T09:08:46Z,2021-04-12T09:47:24Z,beaufortfrancois,whatwg
+815743162,Add an id member to Web App Manifest to uniquely identify a web app,https://api.github.com/repos/mozilla/standards-positions/issues/493,0,2021-02-24T18:40:32Z,2021-10-01T07:16:06Z,benfrancis,w3c
+815701065,Richer Install UI for PWAs,https://api.github.com/repos/mozilla/standards-positions/issues/492,0,2021-02-24T17:39:52Z,2021-03-27T17:28:21Z,finnur-thorarinsson,w3c
+813306753,CSS scrollbar-gutter,https://api.github.com/repos/mozilla/standards-positions/issues/488,0,2021-02-22T09:17:09Z,2021-07-16T07:07:42Z,felipeerias,w3c
+809717848,WebXR Depth Sensing Module,https://api.github.com/repos/mozilla/standards-positions/issues/487,2,2021-02-16T23:15:20Z,2021-03-18T19:59:34Z,bialpio,w3c
+806849867,Clipboard DataTransfer read-only files,https://api.github.com/repos/mozilla/standards-positions/issues/484,0,2021-02-12T00:19:19Z,2021-07-08T22:05:39Z,joelhockey,w3c
+806757651,Custom Highlight API,https://api.github.com/repos/mozilla/standards-positions/issues/482,3,2021-02-11T21:28:32Z,2021-02-12T16:58:27Z,sanketj,w3c
+795055478,Critical CH: Client Hints Reliability mechanism,https://api.github.com/repos/mozilla/standards-positions/issues/479,0,2021-01-27T12:23:25Z,2021-01-28T14:40:35Z,amtunlimited,ietf|w3c-cg
+787203683,JS Self-Profiling API,https://api.github.com/repos/mozilla/standards-positions/issues/477,0,2021-01-15T21:28:24Z,2021-07-26T21:38:02Z,acomminos,w3c-cg
+786344986,Storage Buckets API,https://api.github.com/repos/mozilla/standards-positions/issues/475,0,2021-01-14T21:14:17Z,2021-03-12T17:05:58Z,ayuishii,w3c-cg
+783851230,WebXR dynamic viewport scaling,https://api.github.com/repos/mozilla/standards-positions/issues/473,0,2021-01-12T02:17:37Z,2021-03-12T09:02:32Z,klausw,w3c
+783417949,CSS @scope,https://api.github.com/repos/mozilla/standards-positions/issues/472,0,2021-01-11T14:30:41Z,2021-01-20T17:21:59Z,lilles,w3c
+780354804,CSS spelling and grammar features,https://api.github.com/repos/mozilla/standards-positions/issues/470,0,2021-01-06T09:18:05Z,2021-07-01T08:20:49Z,delan,w3c
+766893023,Location.ancestorOrigins,https://api.github.com/repos/mozilla/standards-positions/issues/466,0,2020-12-14T20:21:42Z,2021-03-12T08:05:58Z,smaug----,whatwg
+761649925,Forced Colors Mode,https://api.github.com/repos/mozilla/standards-positions/issues/463,0,2020-12-10T21:58:02Z,2021-03-12T08:22:01Z,alisonmaher,w3c
+758858921,Support for overflow-clip-margin,https://api.github.com/repos/mozilla/standards-positions/issues/462,0,2020-12-07T21:21:55Z,2022-05-02T22:42:54Z,sky2,w3c
+739431291,Web Authentication ResidentKeyRequirement and credProps,https://api.github.com/repos/mozilla/standards-positions/issues/456,0,2020-11-09T23:00:50Z,2021-03-25T13:17:09Z,kreichgauer,w3c
+715102612,Pointer Lock Unadjusted Movement Option.,https://api.github.com/repos/mozilla/standards-positions/issues/448,0,2020-10-05T19:28:33Z,2021-03-12T09:06:55Z,JamesHollyer,w3c
+713700281,Standards position request: display_override in WebManifest,https://api.github.com/repos/mozilla/standards-positions/issues/447,0,2020-10-02T15:15:55Z,2021-03-12T08:22:35Z,dmurph,w3c-cg
+697283892,Heavy Ad Intervention,https://api.github.com/repos/mozilla/standards-positions/issues/436,0,2020-09-10T00:59:19Z,2021-03-12T08:05:25Z,johnivdel,whatwg|proposal appears stale

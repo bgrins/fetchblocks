@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <script type="module">
+      import { run, fetchblocks, jsEval } from "../web/bundle.js";
+(async () => {
+
+  // TODO: worker
+  console.log(jsEval("return 1+1"))
+  
+  let resp = await fetchblocks.run([
+      {
+        resource:
+          "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
+      },
+      { type: "jmespath", value: "Results[].{name: Make_Name, id: Make_ID}" },
+      { type: "jmespath", value: "[?name == `ASTON MARTIN`]" },
+    ]);
+  console.log(JSON.stringify(resp));
+      console.log(run());
+      console.log(await fetchblocks.run([
+    { resource: "http://example.com" },
+    { type: "script", value: "return builtins.jmespath(input, { value: 'a' })" },
+  ], { stubResponse: { a: 1}}));
+
+})();
+    </script>
+  </body>
+</html>

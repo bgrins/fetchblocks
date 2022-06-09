@@ -1,0 +1,27 @@
+<fetch-block
+  resource="https://raw.githubusercontent.com/mozilla/standards-positions/main/activities.json"
+>
+  <fetch-block-transform src="../../utils/json_to_csv.js"></fetch-block-transform>
+</fetch-block>
+
+<!-- TODO: papaparse unparse doesn't handle the markdown in comments well here and that breaks csv export.
+     For now just don't include those fields  -->
+<fetch-block
+  id="open-issues"
+  resource="https://api.github.com/repos/mozilla/standards-positions/issues?state=open&page={{ dataset.page | default: 1 }}&per_page={{ dataset.per_page | default: 5 }}"
+>
+  <fetch-block-transform
+    src="../../utils/jmespath.js"
+    value="[].{title: title, url: html_url, created_at: created_at, updated_at: updated_at, user: user.login, labels: labels, reactions: reactions.total_count, id: id  }"
+  ></fetch-block-transform>
+  <!-- <script type="text/fetch-block-transform"
+          src="{{utils.jmespath}}"
+          value="[].{title: title, url: html_url, created_at: created_at, updated_at: updated_at, user: user.login, labels: labels, reactions: reactions.total_count, id: id  }"></script> -->
+  <script type="text/fetch-block-transform">
+    for (let row of input) {
+      row.labels = row.labels.map(l=>l.name).join("|");
+    }
+    return input;
+  </script>
+  <fetch-block-transform src="../../utils/json_to_csv.js" header="false"></fetch-block-transform>
+</fetch-block>
