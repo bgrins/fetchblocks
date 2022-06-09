@@ -20,8 +20,8 @@ await Deno.copyFile("README.md", "npm/README.md");
 
 await copySync("testdata", "npm/src/testdata");
 await copySync("testdata", "npm/script/testdata");
-await copySync("utils", "npm/script/fetchblocks/utils");
-await copySync("utils", "npm/esm/fetchblocks/utils");
+await copySync("utils", "npm/script/utils");
+await copySync("utils", "npm/esm/utils");
 
 try {
   await build({

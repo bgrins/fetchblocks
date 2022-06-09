@@ -1,7 +1,7 @@
 src/
-esm/fetchblocks/test.js
-script/fetchblocks/test.js
-types/fetchblocks/test.js
+esm/test.js
+script/test.js
+types/test.js
 esm/deps/deno.land/std@0.137.0/fmt/colors.js
 script/deps/deno.land/std@0.137.0/fmt/colors.js
 types/deps/deno.land/std@0.137.0/fmt/colors.d.ts
