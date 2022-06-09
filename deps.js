@@ -4,10 +4,6 @@ export { Liquid } from "https://esm.sh/liquidjs";
 export { execInSandbox } from "https://deno.land/x/esm_sandbox_eval@0.1.0/mod.js";
 // export { execInSandbox } from "../js-sandbox/mod.js";
 
-import { configSync } from "https://deno.land/std@0.137.0/dotenv/mod.ts";
-
-const CONFIG = configSync();
-
 export { parse as acornParse } from "https://esm.sh/acorn@8.7.1";
 
 // To load from the file system for testing:
