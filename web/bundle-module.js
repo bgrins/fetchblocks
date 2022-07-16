@@ -61590,7 +61590,7 @@ if (typeof CustomEvent == "undefined") {
         }
     };
 }
-function jsEval(str, input, options, { importMap ={} , verbose =true  } = {}) {
+function jsEval(str, input, options, { importMap ={} , verbose =false  } = {}) {
     return execInSandbox(str, {
         verbose,
         importMap,
@@ -62024,6 +62024,7 @@ class fetchblock extends EventTarget {
     async plan(options = {}) {
         let plan = await this.flatten();
         let dataset = options.dataset || {};
+        let { verbose  } = options;
         let secrets = Object.entries(dataset).filter(([k, v145])=>typeof v145 == "object" && v145.hasOwnProperty("value")
         );
         for (let [k141, v146] of secrets){
@@ -62088,7 +62089,9 @@ class fetchblock extends EventTarget {
                 throw new Error("Invalid step - this should be thrown before we start running though");
             }
             if (transform) {
-                stepValue = await jsEval(transform, incomingValue, thisStep);
+                stepValue = await jsEval(transform, incomingValue, thisStep, {
+                    verbose
+                });
             }
             thisStep.stepValue = stepValue;
             plan.currentStep = plan.currentStep + 1;

@@ -23,9 +23,12 @@ await copySync("testdata", "npm/script/testdata");
 await copySync("utils", "npm/script/utils");
 await copySync("utils", "npm/esm/utils");
 
+await bundleWeb();
+await copySync("./web", "npm/web");
+
 try {
   await build({
-    entryPoints: ["./mod.js"],
+    entryPoints: ["./mod.js", "./web/bundle-module.js"],
     outDir: "./npm",
     testPattern: "test.js",
     shims: {
@@ -69,5 +72,3 @@ try {
   await Deno.writeTextFile("npm/.npmignore", ".env", { append: true });
 }
 
-await bundleWeb();
-await copySync("./web", "npm/web");

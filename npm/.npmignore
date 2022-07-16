@@ -2,6 +2,12 @@ src/
 esm/test.js
 script/test.js
 types/test.js
+esm/deps/deno.land/std@0.137.0/dotenv/mod.js
+script/deps/deno.land/std@0.137.0/dotenv/mod.js
+types/deps/deno.land/std@0.137.0/dotenv/mod.d.ts
+esm/deps/deno.land/std@0.137.0/dotenv/util.js
+script/deps/deno.land/std@0.137.0/dotenv/util.js
+types/deps/deno.land/std@0.137.0/dotenv/util.d.ts
 esm/deps/deno.land/std@0.137.0/fmt/colors.js
 script/deps/deno.land/std@0.137.0/fmt/colors.js
 types/deps/deno.land/std@0.137.0/fmt/colors.d.ts
