@@ -16,7 +16,7 @@ const CONFIG = configSync();
 // deno run -A --unstable scripts/build.js 0.1.0
 
 // Publishing:
-// deno run -A --unstable scripts/build.js 0.1.2 && git commit -am 'tag' && git tag 0.1.2 && && npm publish --access=public npm/ && git push && git push origin --tags
+// deno run -A --unstable scripts/build.js 0.1.7 && git commit -am 'tag' && git tag 0.1.7 && npm publish --access=public npm/ && git push && git push origin --tags
 
 // Installing:
 // https://deno.land/manual/getting_started/installation
