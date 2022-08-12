@@ -492,7 +492,7 @@ class fetchblock extends EventTarget {
 
   stringify(type) {}
 
-  async fetchData(fetchOptions = {}, options = {}) {
+  async fetchData(fetchOptions = {}, options = {}, input = {}) {
     if (fetchOptions.stubResponse) {
       return fetchOptions.stubResponse;
     }
@@ -581,19 +581,20 @@ class fetchblock extends EventTarget {
   }
 
   // Apply liquid templates to finalize plan with actual values
-  liquify(plan, dataset) {
-    for (var property in plan) {
-      if (plan.hasOwnProperty(property)) {
-        if (typeof plan[property] == "object") {
-          plan[property] = this.liquify(plan[property], dataset);
+  liquify(step, dataset, input) {
+    for (var property in step) {
+      if (step.hasOwnProperty(property)) {
+        if (typeof step[property] == "object") {
+          step[property] = this.liquify(step[property], dataset);
         } else {
-          plan[property] = LIQUID_ENGINE.parseAndRenderSync(plan[property], {
+          step[property] = LIQUID_ENGINE.parseAndRenderSync(step[property], {
             dataset,
+            input,
           });
         }
       }
     }
-    return plan;
+    return step;
   }
 
   // Traverse all parents and flatten into a single block
@@ -683,27 +684,33 @@ class fetchblock extends EventTarget {
       dataset[k] = v.value;
     }
 
-    plan = this.liquify(structuredClone(plan), dataset);
-
-    if (secrets.length) {
-      let requestURL = new URL(plan[0].resource);
-      for (let [k, v] of secrets) {
-        if (
-          !v.allowedOrigins ||
-          !v.allowedOrigins.includes(requestURL.origin)
-        ) {
-          throw new Error(
-            `Aborting. Attempted to use a disallowed key: ${k} at origin ${
-              requestURL.origin
-            }. Allowed origins: ${v.allowedOrigins?.join() || "none"}`
-          );
-        } else {
-          dataset[k] = v.value;
+    function validateStep(step) {
+      if (secrets.length && step.resource) {
+        let requestURL = new URL(step.resource);
+        for (let [k, v] of secrets) {
+          if (
+            !v.allowedOrigins ||
+            !v.allowedOrigins.includes(requestURL.origin)
+          ) {
+            throw new Error(
+              `Aborting. Attempted to use a disallowed key: ${k} at origin ${
+                requestURL.origin
+              }. Allowed origins: ${v.allowedOrigins?.join() || "none"}`
+            );
+          } else {
+            dataset[k] = v.value;
+          }
         }
       }
     }
 
     plan.currentStep = 0;
+
+    // Todo - make this more atomic since it needs to happen immediately for the first step,
+    // and then lazily for future ones (so that we can pass along input).
+    plan[0] = this.liquify(structuredClone(plan[0]), dataset);
+    validateStep(plan[0]);
+
     this.dispatchEvent(
       new CustomEvent("PlanReady", { detail: { fbid: this.id, plan, options } })
     );
@@ -715,6 +722,12 @@ class fetchblock extends EventTarget {
       // Callers are likely checking this, but just in case
       if (plan.currentStep >= plan.length) {
         return;
+      }
+
+      if (plan.currentStep > 0) {
+        let input = plan[plan.currentStep - 1].stepValue;
+        plan[plan.currentStep] = this.liquify(structuredClone(plan[plan.currentStep]), dataset, input);
+        validateStep(plan[plan.currentStep]);
       }
 
       let stepValue;
@@ -743,6 +756,7 @@ class fetchblock extends EventTarget {
         throw new Error("Invalid run - no data source");
       }
       let incomingValue;
+
       if (plan.currentStep == 0) {
         if (options.stubResponse) {
           if (thisStep.resource) {
@@ -758,19 +772,23 @@ class fetchblock extends EventTarget {
         incomingValue = lastStep.stepValue;
       }
 
-      let { transform } = thisStep;
-      if (!stepValue && !transform) {
+      // Todo - allow multiple fetches
+      let { transform, resource } = thisStep;
+      if (!transform && !resource) {
         console.error("TODO: Clean this up");
         throw new Error(
           "Invalid step - this should be thrown before we start running though"
         );
       }
 
-      if (transform) {
+      if (plan.currentStep > 0 && resource) {
+        stepValue = await this.fetchData(thisStep, options, incomingValue);
+      } else if (transform) {
         stepValue = await jsEval(transform, incomingValue, thisStep, {
           verbose,
         });
       }
+
       // Todo: rename "type" to "transform" and make handling src etc more consistent
       // else if (thisStep.type) {
       //   if (!incomingValue) {

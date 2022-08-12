@@ -243,6 +243,40 @@ Deno.test("fetchblocks - setPrefetchCallback", async () => {
   fetchblocks.setPrefetchCallback(null);
 });
 
+Deno.test("fetchblocks - post", async () => {
+  assertEquals(
+    await fetchblocks.run([
+      {
+        resource: `https://mockbin.org/echo`,
+        method: "POST",
+        body: "ping",
+      },
+    ]),
+    "ping"
+  );
+  assertEquals(
+    await fetchblocks.run(
+      [
+        {
+          resource: `https://mockbin.org/echo`,
+          method: "POST",
+          body: "{{dataset.body}}",
+        },
+        {
+          resource: `https://mockbin.org/echo`,
+          method: "POST",
+          body: "{{input | upcase}}",
+        },
+      ],
+      {
+        verbose: true,
+        dataset: { body: "ping" },
+      }
+    ),
+    "PING"
+  );
+});
+
 Deno.test("fetchblocks - transform only", async () => {
   assertEquals(
     await fetchblocks.run(
@@ -265,6 +299,7 @@ Deno.test("fetchblocks - transform only", async () => {
     </fetch-block>`)
     ).run({
       stubResponse: { a: "val" },
+      verbose: true,
     }),
     "val"
   );
