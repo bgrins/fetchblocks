@@ -2,6 +2,7 @@
 // import { emit, bundle } from "https://deno.land/x/emit/mod.ts";
 
 export async function bundleWeb() {
+  return;
   Deno.copyFileSync("mod.js", "web/mod.js");
   await (async () => {
     // The web/ folder has a separate set of deps to make a web-compatible ESM
@@ -18,6 +19,7 @@ export async function bundleWeb() {
     Deno.writeTextFileSync(`./web/bundle-module.js`, script);
   })();
   await (async () => {
+    return;
     const { files, diagnostics } = await Deno.emit(
       new URL("../web/mod.js", import.meta.url),
       {

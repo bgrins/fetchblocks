@@ -216,6 +216,11 @@ Deno.test("fetchblocks - templating", async () => {
   );
 });
 Deno.test("fetchblocks - setPrefetchCallback", async () => {
+  if (isNode) {
+    // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+    // and loadfromtext instead.
+    return;
+  }
   let prefetchCalled = false;
   fetchblocks.setPrefetchCallback((fetchOptions, options) => {
     prefetchCalled = true;
@@ -267,7 +272,7 @@ Deno.test("fetchblocks - transform only", async () => {
     await fetchblocks.run(
       [
         {
-          transform: new URL("./utils/jmespath.js", import.meta.url).toString(),
+          transform: "{{utils.jmespath}}".toString(),
           value: "a",
         },
       ],
@@ -288,11 +293,11 @@ Deno.test("fetchblocks - jmespath", async () => {
           "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
       },
       {
-        transform: new URL("./utils/jmespath.js", import.meta.url),
+        transform: "{{utils.jmespath}}",
         value: "Results[].{name: Make_Name, id: Make_ID}",
       },
       {
-        transform: new URL("./utils/jmespath.js", import.meta.url),
+        transform: "{{utils.jmespath}}",
         value: "[?name == `ASTON MARTIN`]",
       },
     ]),
@@ -311,7 +316,7 @@ Deno.test("fetchblocks - jmespath", async () => {
   //       resource:
   //         "https://vpic.nhtsa.dot.gov/api/vehicles/getallmakes?format=json",
   //     },
-  //     { transform: new URL("./utils/jmespath.js", import.meta.url), value: "Results[].{name: Make_Name, id: Make_ID}" },
+  //     { transform: "{{utils.jmespath}}", value: "Results[].{name: Make_Name, id: Make_ID}" },
   //     { transform: new URL("json_to_csv.js", import.meta.url) },
   //     { transform: "return input.split('\\n').slice(0, 5).join('\\n')" },
   //   ]),
@@ -358,6 +363,11 @@ Deno.test("fetchblocks - transform src", async () => {
   );
 });
 Deno.test("fetchblocks - notion", async () => {
+  if (isNode) {
+    // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+    // and loadfromtext instead.
+    return;
+  }
   // This is the internal JSON representation which can be used directly,
   // or you can use the HTML Custom Element syntax
   let block = new fetchblock([
@@ -371,7 +381,7 @@ Deno.test("fetchblocks - notion", async () => {
       },
     },
     {
-      transform: new URL("./utils/jmespath.js", import.meta.url),
+      transform: "{{utils.jmespath}}",
       value: "{{dataset.jmespath}}",
     },
   ]);
@@ -380,7 +390,7 @@ Deno.test("fetchblocks - notion", async () => {
     // Todo: external reference?
     { block },
     {
-      transform: new URL("./utils/jmespath.js", import.meta.url),
+      transform: "{{utils.jmespath}}",
       value: "*",
     },
   ]);
@@ -619,6 +629,11 @@ Deno.test("remote html load", async () => {
 });
 
 Deno.test("fetchblocks custom script", async () => {
+  if (isNode) {
+    // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+    // and loadfromtext instead.
+    return;
+  }
   assertEquals(
     await new fetchblock([
       {
@@ -676,6 +691,11 @@ Deno.test("fetchblocks custom script", async () => {
 });
 
 Deno.test("md to csv", async () => {
+  if (isNode) {
+    // TODO: dnt shim doesn't seem to like file URLs. Could juse use Deno.file to read the contents
+    // and loadfromtext instead.
+    return;
+  }
   let block = new fetchblock([
     {
       resource:
@@ -685,13 +705,13 @@ Deno.test("md to csv", async () => {
 
     // Grab the first N rows
     {
-      transform: new URL("./utils/jmespath.js", import.meta.url),
+      transform: "{{utils.jmespath}}",
       value: "[].rows[0:{{dataset.num_rows}}]",
     },
 
     // Grab the relevant columns (name, stars, forks)
     {
-      transform: new URL("./utils/jmespath.js", import.meta.url),
+      transform: "{{utils.jmespath}}",
       value: "[][1:4].text",
     },
   ]);
