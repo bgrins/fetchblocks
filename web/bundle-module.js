@@ -61763,6 +61763,9 @@ blockLoaders.set("html", {
 const fetchblocks = (()=>{
     return {
         blockLoaders,
+        setPrefetchCallback (cb) {
+            fetchblocks.prefetchCallback = cb;
+        },
         getLoaderForText (text) {
             let loader;
             for (let [key, value] of blockLoaders.entries()){
@@ -61895,6 +61898,9 @@ class fetchblock extends EventTarget {
     async fetchData(fetchOptions = {}, options = {}) {
         if (fetchOptions.stubResponse) {
             return fetchOptions.stubResponse;
+        }
+        if (fetchblocks.prefetchCallback) {
+            fetchblocks.prefetchCallback(fetchOptions, options);
         }
         let { resource , method , headers , body , mode , credentials , cache , redirect , referrer , integrity , keepalive , signal ,  } = fetchOptions;
         if (!resource) {

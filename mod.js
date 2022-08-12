@@ -326,6 +326,10 @@ const fetchblocks = (() => {
   return {
     blockLoaders,
 
+    setPrefetchCallback(cb) {
+      fetchblocks.prefetchCallback = cb;
+    },
+
     getLoaderForText(text) {
       let loader;
       for (let [key, value] of blockLoaders.entries()) {
@@ -491,6 +495,9 @@ class fetchblock extends EventTarget {
   async fetchData(fetchOptions = {}, options = {}) {
     if (fetchOptions.stubResponse) {
       return fetchOptions.stubResponse;
+    }
+    if (fetchblocks.prefetchCallback) {
+      fetchblocks.prefetchCallback(fetchOptions, options);
     }
     // To avoid too much nesting in JS/JSON we pass all the fetch options
     // flattened along with the uri instead of two params. So cherry pick
