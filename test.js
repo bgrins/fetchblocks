@@ -59,6 +59,46 @@ ENV.set("GITHUB_TOKEN", {
   allowedOrigins: ["https://api.github.com"],
 });
 
+Deno.test("fetchblocks - basic", async () => {
+  assertEquals(
+    await fetchblocks.run(
+      [
+        {
+          resource: "https://example.com",
+        },
+        {
+          transform: new URL("./utils/noop.js", import.meta.url).toString(),
+        },
+      ],
+      {
+        stubResponse: 40,
+      }
+    ),
+    40
+  );
+
+  assertEquals(
+    await fetchblocks.run(
+      {
+        resource: "https://example.com",
+      },
+      {
+        stubResponse: 40,
+      }
+    ),
+    40,
+    "Can run without an array for a single step"
+  );
+  assertEquals(
+    await new fetchblock({
+      resource: "https://example.com",
+    }).run({
+      stubResponse: 40,
+    }),
+    40,
+    "Can run without an array for a single step"
+  );
+});
 Deno.test("fetchblocks - builtins", async () => {
   assertEquals(await jsEval("return 1+1"), 2);
   // assertEquals(

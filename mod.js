@@ -418,13 +418,10 @@ const fetchblocks = (() => {
       return block;
     },
 
-    run(steps, dataset, options = {}) {
-      if (!Array.isArray(steps)) {
-        throw new Error("fetchblocks.run expects an array of steps");
-      }
+    run(steps, options = {}) {
       let fb = new fetchblock(steps);
 
-      return fb.run(dataset, options);
+      return fb.run(options);
     },
   };
 })();
@@ -433,6 +430,9 @@ class fetchblock extends EventTarget {
   constructor(steps, options = {}) {
     // Todo: only accept an array
     super();
+    if (steps && typeof steps === "object" && !Array.isArray(steps)) {
+      steps = [steps];
+    }
     if (!Array.isArray(steps) || steps.length === 0) {
       throw new Error(
         "Must provide an array with steps to create a fetchblock"
@@ -726,7 +726,11 @@ class fetchblock extends EventTarget {
 
       if (plan.currentStep > 0) {
         let input = plan[plan.currentStep - 1].stepValue;
-        plan[plan.currentStep] = this.liquify(structuredClone(plan[plan.currentStep]), dataset, input);
+        plan[plan.currentStep] = this.liquify(
+          structuredClone(plan[plan.currentStep]),
+          dataset,
+          input
+        );
         validateStep(plan[plan.currentStep]);
       }
 
