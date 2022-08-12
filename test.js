@@ -287,6 +287,19 @@ Deno.test("fetchblocks - post", async () => {
   assertEquals(
     await fetchblocks.run([
       {
+        resource: `https://mockbin.org/request`,
+      },
+      {
+        resource: `https://mockbin.org/echo`,
+        method: "POST",
+        body: "{{ input.method }}",
+      },
+    ]),
+    "GET"
+  );
+  assertEquals(
+    await fetchblocks.run([
+      {
         resource: `https://mockbin.org/echo`,
         method: "POST",
         body: "ping",

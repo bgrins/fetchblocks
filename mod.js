@@ -585,7 +585,7 @@ class fetchblock extends EventTarget {
     for (var property in step) {
       if (step.hasOwnProperty(property)) {
         if (typeof step[property] == "object") {
-          step[property] = this.liquify(step[property], dataset);
+          step[property] = this.liquify(step[property], dataset, input);
         } else {
           step[property] = LIQUID_ENGINE.parseAndRenderSync(step[property], {
             dataset,
