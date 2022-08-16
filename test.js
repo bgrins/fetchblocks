@@ -357,6 +357,31 @@ Deno.test("fetchblocks - transform only", async () => {
     await fetchblocks.run(
       [
         {
+          transform: `
+          input.textToShare = options.dataset.title
+            ? options.dataset.title + " " + options.dataset.url
+            : options.dataset.url;
+          return input;
+          `,
+        },
+      ],
+      {
+        verbose: true,
+        stubResponse: {},
+        dataset: {
+          title: "github",
+          url: "http://github.com",
+        },
+      }
+    ),
+    {
+      textToShare: "github http://github.com",
+    }
+  );
+  assertEquals(
+    await fetchblocks.run(
+      [
+        {
           transform: "{{ utils.jmespath }}",
           value: "a",
         },

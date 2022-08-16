@@ -788,9 +788,14 @@ class fetchblock extends EventTarget {
       if (plan.currentStep > 0 && resource) {
         stepValue = await this.fetchData(thisStep, options, incomingValue);
       } else if (transform) {
-        stepValue = await jsEval(transform, incomingValue, thisStep, {
-          verbose,
-        });
+        stepValue = await jsEval(
+          transform,
+          incomingValue,
+          Object.assign({}, thisStep, options),
+          {
+            verbose,
+          }
+        );
       }
 
       // Todo: rename "type" to "transform" and make handling src etc more consistent
