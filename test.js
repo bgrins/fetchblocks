@@ -328,6 +328,28 @@ Deno.test("fetchblocks - post", async () => {
     ),
     "PING"
   );
+  assertEquals(
+    await fetchblocks.run(
+      [
+        {
+          resource: `https://mockbin.org/echo`,
+          method: "POST",
+          body: "{{dataset.body}}",
+        },
+        { transform: "return input.toUpperCase() + '!'" },
+        {
+          resource: `https://mockbin.org/echo`,
+          method: "POST",
+          body: "{{input}}",
+        },
+      ],
+      {
+        verbose: true,
+        dataset: { body: "ping" },
+      }
+    ),
+    "PING!"
+  );
 });
 
 Deno.test("fetchblocks - transform only", async () => {
